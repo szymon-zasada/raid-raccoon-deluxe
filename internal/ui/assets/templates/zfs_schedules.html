@@ -1,0 +1,108 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">ZFS Snapshots: Snapshot Schedules</div>
+  <div class="window-body">
+    <div class="subnav">
+      <button class="btn" type="button" data-nav="/zfs/snapshots">Snapshots</button>
+      <button class="btn active" type="button" data-nav="/zfs/schedules">Snapshot Schedules</button>
+      <button class="btn" type="button" data-nav="/zfs/replication">Replication</button>
+    </div>
+    <div class="dataset-layout">
+      <div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="datasets-refresh">Refresh Datasets</button>
+          <input id="schedule-dataset-filter" placeholder="Filter datasets">
+        </div>
+        <div id="schedule-dataset-tree" class="dataset-tree"></div>
+        <div class="empty" id="schedule-dataset-empty">No datasets found.</div>
+        <div class="muted" id="schedule-selected">Selected: -</div>
+      </div>
+      <div>
+        <form id="schedule-form" class="form-grid" method="post" action="/api/zfs/schedules">
+          <input type="hidden" id="sched-id" value="">
+          <div>
+            <label for="sched-retention">Retention (count)</label>
+            <input id="sched-retention" name="retention" type="number" min="1" value="7" required>
+          </div>
+          <div>
+            <label for="sched-prefix">Prefix</label>
+            <input id="sched-prefix" name="prefix" placeholder="raidraccoon">
+          </div>
+          <div>
+            <label for="sched-enabled">Enabled</label>
+            <select id="sched-enabled" name="enabled">
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+          <div>
+            <label for="sched-mode">Mode</label>
+            <select id="sched-mode" name="mode">
+              <option value="quick">Quick Preset</option>
+              <option value="advanced">Advanced Cron</option>
+            </select>
+          </div>
+          <div class="sched-quick">
+            <label for="sched-frequency">Preset</label>
+            <select id="sched-frequency" name="frequency">
+              <option value="hourly">Hourly</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="interval-hours">Every N hours</option>
+              <option value="interval-minutes">Every N minutes</option>
+            </select>
+          </div>
+          <div class="sched-quick">
+            <label for="sched-interval">Interval (N)</label>
+            <input id="sched-interval" name="interval" type="number" min="1" max="59" value="2">
+          </div>
+          <div class="sched-quick">
+            <label for="sched-time">Time (HH:MM)</label>
+            <input id="sched-time" name="time" type="time" value="03:00">
+          </div>
+          <div class="sched-quick">
+            <label for="sched-day">Day (weekly=0-6, monthly=1-28)</label>
+            <input id="sched-day" name="day" type="number" min="0" max="28" value="1">
+          </div>
+          <div class="sched-advanced hidden">
+            <label for="sched-minute">Minute</label>
+            <input id="sched-minute" name="minute" placeholder="0">
+          </div>
+          <div class="sched-advanced hidden">
+            <label for="sched-hour">Hour</label>
+            <input id="sched-hour" name="hour" placeholder="0">
+          </div>
+          <div class="sched-advanced hidden">
+            <label for="sched-dom">Day of Month</label>
+            <input id="sched-dom" name="dom" placeholder="*">
+          </div>
+          <div class="sched-advanced hidden">
+            <label for="sched-month">Month</label>
+            <input id="sched-month" name="month" placeholder="*">
+          </div>
+          <div class="sched-advanced hidden">
+            <label for="sched-dow">Day of Week</label>
+            <input id="sched-dow" name="dow" placeholder="*">
+          </div>
+          <div class="muted" id="sched-preview">Cron: -</div>
+          <div class="form-actions">
+            <button class="btn primary" type="submit" id="sched-save">Save Schedule</button>
+            <button class="btn" type="button" id="sched-reset">Reset</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table" id="schedules-table">
+        <thead>
+          <tr><th>ID</th><th>Dataset</th><th>Summary</th><th>Cron</th><th>Retention</th><th>Prefix</th><th>Enabled</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="schedules-empty">No schedules configured.</div>
+    </div>
+    <div class="muted" id="cron-updated"></div>
+  </div>
+</section>
+{{end}}

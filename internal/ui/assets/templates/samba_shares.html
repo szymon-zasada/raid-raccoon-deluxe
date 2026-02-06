@@ -1,0 +1,60 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">Samba Settings: Shares</div>
+  <div class="window-body">
+    <div class="subnav">
+      <a class="btn" href="/samba/users">Users</a>
+      <a class="btn active" href="/samba/shares">Shares</a>
+    </div>
+    <form id="share-form" class="form-grid" method="post" action="/api/samba/shares">
+      <div>
+        <label for="share-name">Share Name</label>
+        <input id="share-name" name="name" required>
+      </div>
+      <div>
+        <label for="share-path">Path</label>
+        <input id="share-path" name="path" required>
+      </div>
+      <div>
+        <label for="share-readonly">Read Only</label>
+        <select id="share-readonly" name="read_only">
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+      <div>
+        <label for="share-browseable">Browseable</label>
+        <select id="share-browseable" name="browseable">
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div>
+        <label for="share-guest">Guest OK</label>
+        <select id="share-guest" name="guest_ok">
+          <option value="no">No</option>
+          <option value="yes">Yes</option>
+        </select>
+      </div>
+      <div>
+        <label for="share-comment">Comment</label>
+        <input id="share-comment" name="comment">
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Create Share</button>
+        <button class="btn" type="button" data-action="test-samba">Test Config</button>
+        <button class="btn" type="button" data-action="reload-samba">Reload Samba</button>
+      </div>
+    </form>
+    <div class="table-wrap">
+      <table class="table" id="samba-shares-table">
+        <thead>
+          <tr><th>Share</th><th>Path</th><th>Read Only</th><th>Browseable</th><th>Guest</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="samba-shares-empty">No shares defined.</div>
+    </div>
+  </div>
+</section>
+{{end}}

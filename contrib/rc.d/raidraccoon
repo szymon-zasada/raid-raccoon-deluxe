@@ -1,0 +1,54 @@
+#!/bin/sh
+# PROVIDE: raidraccoon
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+# Service definition
+name="raidraccoon"
+rcvar=raidraccoon_enable
+
+load_rc_config $name
+
+# Defaults (override via sysrc)
+: ${raidraccoon_enable:=NO}                     # enable at boot
+: ${raidraccoon_user:=raidraccoon}              # run as service user
+: ${raidraccoon_command:=/usr/local/bin/raidraccoon}
+: ${raidraccoon_config:=/usr/local/etc/raidraccoon.json}
+: ${raidraccoon_flags:=""}                      # optional flags (e.g. --unsafe)
+
+command="${raidraccoon_command}"
+command_args="serve --config ${raidraccoon_config} ${raidraccoon_flags}"
+pidfile="/var/run/${name}.pid"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+status_cmd="${name}_status"
+
+raidraccoon_start() {
+  echo "Starting ${name}."
+  # daemonize and drop privileges to the service user
+  /usr/sbin/daemon -p ${pidfile} -u ${raidraccoon_user} ${command} ${command_args}
+}
+
+raidraccoon_stop() {
+  echo "Stopping ${name}."
+  if [ -f ${pidfile} ]; then
+    kill $(cat ${pidfile})
+  else
+    # fallback if pidfile is missing
+    pkill -u ${raidraccoon_user} -f "${command} serve"
+  fi
+}
+
+raidraccoon_status() {
+  if [ -f ${pidfile} ]; then
+    echo "${name} running (pid $(cat ${pidfile}))"
+    return 0
+  fi
+  echo "${name} not running"
+  return 1
+}
+
+run_rc_command "$1"

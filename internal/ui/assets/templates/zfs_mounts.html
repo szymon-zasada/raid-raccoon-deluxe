@@ -1,0 +1,84 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">Drives</div>
+  <div class="window-body">
+    <div class="toolbar">
+      <button class="btn" type="button" data-action="drives-refresh">Refresh</button>
+      <span class="muted">Source: geom disk list</span>
+    </div>
+    <div class="panel">
+      <div class="panel-title">L2ARC Cache</div>
+      <div id="cache-summary" class="muted">No cache devices detected.</div>
+      <div class="health-bar">
+        <div id="cache-bar-fill" class="health-bar-fill"></div>
+      </div>
+      <div id="cache-devices" class="muted tiny"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">GPT Labels</div>
+      <div class="toolbar">
+        <button class="btn" type="button" data-action="labels-refresh">Refresh</button>
+        <span class="muted">Creates /dev/gpt/&lt;label&gt; via geom label</span>
+      </div>
+      <form id="gpt-label-form" class="form-row" method="post" action="/api/zfs/labels">
+        <label for="gpt-provider">Provider</label>
+        <input id="gpt-provider" placeholder="da0p1 or /dev/da0p1" required>
+        <label for="gpt-label">Label</label>
+        <input id="gpt-label" placeholder="cache0" required>
+        <button class="btn primary" type="submit">Create Label</button>
+      </form>
+      <div class="table-wrap">
+        <table class="table" id="gpt-labels-table">
+          <thead>
+            <tr><th>Label</th><th>Provider</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="empty" id="gpt-labels-empty">No GPT labels found.</div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table" id="zfs-drives-table">
+        <thead>
+          <tr><th>Device</th><th>Pool</th><th>Role</th><th>Avail/Total</th><th>Description</th><th>Ident</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="zfs-drives-empty">No drives found.</div>
+    </div>
+  </div>
+</section>
+
+<section class="window">
+  <div class="window-title">ZFS Mounts</div>
+  <div class="window-body">
+    <div class="toolbar">
+      <button class="btn" type="button" data-action="mounts-refresh">Refresh</button>
+      <span class="muted">Mount/unmount uses zfs mount|unmount</span>
+    </div>
+    <form id="mount-create-form" class="form-row" method="post" action="/api/zfs/datasets">
+      <label for="mount-dataset">Dataset</label>
+      <input id="mount-dataset" placeholder="tank/data" required>
+      <label for="mount-point">Mountpoint</label>
+      <input id="mount-point" placeholder="/mnt/data" required>
+      <label for="mount-canmount">Canmount</label>
+      <select id="mount-canmount">
+        <option value="on">on</option>
+        <option value="off">off</option>
+        <option value="noauto">noauto</option>
+      </select>
+      <button class="btn primary" type="submit">Create Mount</button>
+    </form>
+    <div class="muted tiny">Creates a filesystem dataset with mountpoint + canmount.</div>
+    <div class="table-wrap">
+      <table class="table" id="zfs-mounts-table">
+        <thead>
+          <tr><th>Dataset</th><th>Mountpoint</th><th>Canmount</th><th>Mounted</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="zfs-mounts-empty">No datasets found.</div>
+    </div>
+  </div>
+</section>
+{{end}}

@@ -1,0 +1,312 @@
+#!/bin/sh
+# RaidRaccoon Deluxe installer (FreeBSD)
+# - Installs binary, config, rc.d service, sudoers entry
+# - Creates service user/group and sets permissions
+# - Optionally enables + starts service and sets admin password for a new config
+set -e
+
+usage() {
+  cat <<'USAGE'
+Usage: install.sh [options]
+
+Options:
+  --bin PATH         Path to raidraccoon binary (default: ./raidraccoon or build if go is available).
+  --config PATH      Config path (default: /usr/local/etc/raidraccoon.json).
+  --user NAME        Service user (default: raidraccoon).
+  --group NAME       Service group (default: raidraccoon).
+  --prefix PATH      Install prefix (default: /usr/local).
+  --no-enable        Do not enable service at boot.
+  --no-start         Do not start service after install.
+  --no-rc            Skip rc.d script install.
+  --no-sudoers       Skip sudoers install.
+  --password VALUE   Set admin password (only when creating a new config).
+  --no-password      Keep default password (changeme) on new config.
+  -h, --help         Show this help.
+USAGE
+}
+
+if [ "$(/usr/bin/id -u)" -ne 0 ]; then
+  echo "error: run as root (use doas/sudo)." >&2
+  exit 1
+fi
+
+if [ "$(/usr/bin/uname -s)" != "FreeBSD" ]; then
+  echo "error: install.sh targets FreeBSD." >&2
+  exit 1
+fi
+
+# Defaults (override via CLI flags)
+PREFIX="/usr/local"        # install prefix for bin/etc/rc.d
+SRC_BIN=""                 # source binary path (auto-detect/build if empty)
+CONFIG_PATH=""             # config path (defaults to /usr/local/etc/raidraccoon.json)
+USER_NAME="raidraccoon"    # service user
+GROUP_NAME="raidraccoon"   # service group
+ENABLE_SERVICE=1           # sysrc raidraccoon_enable=YES
+START_SERVICE=1            # service raidraccoon start/restart
+INSTALL_RC=1               # install rc.d script
+INSTALL_SUDOERS=1          # install sudoers entry
+SET_PASSWORD=1             # set admin password for new config
+PASSWORD_VALUE=""          # explicit password (otherwise generate)
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --bin)
+      SRC_BIN="$2"; shift 2 ;;
+    --config)
+      CONFIG_PATH="$2"; shift 2 ;;
+    --user)
+      USER_NAME="$2"; shift 2 ;;
+    --group)
+      GROUP_NAME="$2"; shift 2 ;;
+    --prefix)
+      PREFIX="$2"; shift 2 ;;
+    --no-enable)
+      ENABLE_SERVICE=0; shift ;;
+    --no-start)
+      START_SERVICE=0; shift ;;
+    --no-rc)
+      INSTALL_RC=0; shift ;;
+    --no-sudoers)
+      INSTALL_SUDOERS=0; shift ;;
+    --password)
+      PASSWORD_VALUE="$2"; SET_PASSWORD=1; shift 2 ;;
+    --no-password)
+      SET_PASSWORD=0; shift ;;
+    -h|--help)
+      usage; exit 0 ;;
+    *)
+      echo "error: unknown option $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# Derived paths
+BINDIR="$PREFIX/bin"
+ETCDIR="$PREFIX/etc"
+RCDIR="$PREFIX/etc/rc.d"
+if [ -z "$CONFIG_PATH" ]; then
+  CONFIG_PATH="$ETCDIR/raidraccoon.json"
+fi
+BIN_PATH="$BINDIR/raidraccoon"
+
+# Resolve script directory (for contrib/rc.d and repo-local binary)
+SCRIPT_DIR=$(/usr/bin/dirname "$0")
+SCRIPT_DIR=$(cd "$SCRIPT_DIR" && /bin/pwd)
+
+if [ -z "$SRC_BIN" ]; then
+  if [ -x "$SCRIPT_DIR/raidraccoon" ]; then
+    SRC_BIN="$SCRIPT_DIR/raidraccoon"
+  elif [ -x "./raidraccoon" ]; then
+    SRC_BIN="./raidraccoon"
+  elif [ -f "$SCRIPT_DIR/go.mod" ] && command -v go >/dev/null 2>&1; then
+    GO_BIN=$(command -v go)
+    BUILD_BIN=$(/usr/bin/mktemp -t raidraccoon.bin)
+    echo "Building raidraccoon with ${GO_BIN}..."
+    (cd "$SCRIPT_DIR" && CGO_ENABLED=0 "$GO_BIN" build -o "$BUILD_BIN" ./cmd/raidraccoon)
+    SRC_BIN="$BUILD_BIN"
+  else
+    echo "error: raidraccoon binary not found. Use --bin PATH or run from the repo root." >&2
+    exit 1
+  fi
+fi
+
+# Ensure install directories exist
+/bin/mkdir -p "$BINDIR" "$ETCDIR" "$RCDIR"
+
+# Ensure sudoers.d exists if needed
+if [ "${INSTALL_SUDOERS}" -eq 1 ]; then
+  /bin/mkdir -p /usr/local/etc/sudoers.d
+fi
+
+# Create service user/group if missing
+if ! /usr/sbin/pw group show "$GROUP_NAME" >/dev/null 2>&1; then
+  /usr/sbin/pw groupadd "$GROUP_NAME"
+fi
+
+if ! /usr/sbin/pw user show "$USER_NAME" >/dev/null 2>&1; then
+  /usr/sbin/pw useradd "$USER_NAME" -g "$GROUP_NAME" -m -s /usr/sbin/nologin
+fi
+
+# Install binary
+/usr/bin/install -m 0555 "$SRC_BIN" "$BIN_PATH"
+
+if [ "${SRC_BIN}" != "$SCRIPT_DIR/raidraccoon" ] && [ "${SRC_BIN}" != "./raidraccoon" ] && [ -f "$SRC_BIN" ]; then
+  case "$SRC_BIN" in
+    /tmp/raidraccoon.*|/var/tmp/raidraccoon.*)
+      # Clean up temporary build output
+      /bin/rm -f "$SRC_BIN" ;;
+  esac
+fi
+
+# Install rc.d script (from repo or fallback embedded copy)
+if [ "${INSTALL_RC}" -eq 1 ]; then
+  RC_SOURCE="$SCRIPT_DIR/contrib/rc.d/raidraccoon"
+  if [ -f "$RC_SOURCE" ]; then
+    /usr/bin/install -m 0555 "$RC_SOURCE" "$RCDIR/raidraccoon"
+  else
+    RC_TMP=$(/usr/bin/mktemp -t raidraccoon.rc)
+    /bin/cat > "$RC_TMP" <<'RC_EOF'
+#!/bin/sh
+# PROVIDE: raidraccoon
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+# Service definition
+name="raidraccoon"
+rcvar=raidraccoon_enable
+
+load_rc_config $name
+
+# Defaults (override via sysrc)
+: ${raidraccoon_enable:=NO}                     # enable at boot
+: ${raidraccoon_user:=raidraccoon}              # run as service user
+: ${raidraccoon_command:=/usr/local/bin/raidraccoon}
+: ${raidraccoon_config:=/usr/local/etc/raidraccoon.json}
+: ${raidraccoon_flags:=""}                      # optional flags (e.g. --unsafe)
+
+command="${raidraccoon_command}"
+command_args="serve --config ${raidraccoon_config} ${raidraccoon_flags}"
+pidfile="/var/run/${name}.pid"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+status_cmd="${name}_status"
+
+raidraccoon_start() {
+  echo "Starting ${name}."
+  # daemonize and drop privileges to the service user
+  /usr/sbin/daemon -p ${pidfile} -u ${raidraccoon_user} ${command} ${command_args}
+}
+
+raidraccoon_stop() {
+  echo "Stopping ${name}."
+  if [ -f ${pidfile} ]; then
+    kill $(cat ${pidfile})
+  else
+    # fallback if pidfile is missing
+    pkill -u ${raidraccoon_user} -f "${command} serve"
+  fi
+}
+
+raidraccoon_status() {
+  if [ -f ${pidfile} ]; then
+    echo "${name} running (pid $(cat ${pidfile}))"
+    return 0
+  fi
+  echo "${name} not running"
+  return 1
+}
+
+run_rc_command "$1"
+RC_EOF
+    /usr/bin/install -m 0555 "$RC_TMP" "$RCDIR/raidraccoon"
+    /bin/rm -f "$RC_TMP"
+  fi
+fi
+
+# Create config if missing
+CONFIG_CREATED=0
+if [ ! -f "$CONFIG_PATH" ]; then
+  /bin/mkdir -p "$(/usr/bin/dirname "$CONFIG_PATH")"
+  "$BIN_PATH" init --config "$CONFIG_PATH"
+  CONFIG_CREATED=1
+fi
+
+# Secure config ownership/permissions
+/usr/sbin/chown "$USER_NAME":"$GROUP_NAME" "$CONFIG_PATH"
+/bin/chmod 0640 "$CONFIG_PATH"
+
+# Install sudoers entry for required commands
+if [ "${INSTALL_SUDOERS}" -eq 1 ]; then
+  SUDOERS_TMP=$(/usr/bin/mktemp -t raidraccoon.sudoers)
+  /bin/cat > "$SUDOERS_TMP" <<SUDO_EOF
+# RaidRaccoon Deluxe sudoers (required for web UI actions)
+Defaults:${USER_NAME} secure_path="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
+# Allow only the system commands the UI needs
+${USER_NAME} ALL=(ALL) NOPASSWD: /sbin/zfs, /sbin/zpool, /sbin/geom, /sbin/sysctl, /usr/sbin/service, /usr/local/bin/smbpasswd, /usr/local/bin/pdbedit, /usr/local/bin/testparm, /usr/local/bin/rsync, /usr/sbin/sysrc, /sbin/shutdown
+SUDO_EOF
+  /usr/bin/install -m 0440 "$SUDOERS_TMP" /usr/local/etc/sudoers.d/raidraccoon
+  /bin/rm -f "$SUDOERS_TMP"
+
+  if [ ! -x /usr/local/bin/sudo ]; then
+    echo "warning: /usr/local/bin/sudo not found; install sudo for web UI actions." >&2
+  fi
+fi
+
+# Ensure audit log exists and is writable by the service user
+AUDIT_LOG="/var/log/raidraccoon-audit.log"
+if [ ! -f "$AUDIT_LOG" ]; then
+  /usr/bin/touch "$AUDIT_LOG"
+fi
+/usr/sbin/chown "$USER_NAME":"$GROUP_NAME" "$AUDIT_LOG"
+/bin/chmod 0640 "$AUDIT_LOG"
+
+# Set admin password only for a newly created config
+if [ "${CONFIG_CREATED}" -eq 1 ] && [ "${SET_PASSWORD}" -eq 1 ]; then
+  if [ -n "$PASSWORD_VALUE" ]; then
+    ADMIN_PASS="$PASSWORD_VALUE"
+  else
+    # Generate a 24-char hex password from urandom
+    ADMIN_PASS=$(/bin/dd if=/dev/urandom bs=18 count=1 2>/dev/null | /usr/bin/hexdump -v -e '/1 "%02x"' | /usr/bin/cut -c1-24)
+  fi
+  printf "%s\n%s\n" "$ADMIN_PASS" "$ADMIN_PASS" | "$BIN_PATH" passwd --config "$CONFIG_PATH" >/dev/null
+  echo "Admin password: $ADMIN_PASS"
+  echo "Change it later in Settings -> Auth."
+fi
+
+# Update rc.conf defaults (user, command, config, enable)
+if [ "${INSTALL_RC}" -eq 1 ]; then
+  /usr/sbin/sysrc "raidraccoon_user=${USER_NAME}" >/dev/null
+  /usr/sbin/sysrc "raidraccoon_command=${BIN_PATH}" >/dev/null
+  /usr/sbin/sysrc "raidraccoon_config=${CONFIG_PATH}" >/dev/null
+  if [ "${ENABLE_SERVICE}" -eq 1 ]; then
+    /usr/sbin/sysrc raidraccoon_enable=YES >/dev/null
+  else
+    /usr/sbin/sysrc raidraccoon_enable=NO >/dev/null
+  fi
+fi
+
+# Start or restart service.
+# Use one* actions so startup doesn't depend on raidraccoon_enable being YES.
+if [ "${INSTALL_RC}" -eq 1 ] && [ "${START_SERVICE}" -eq 1 ]; then
+  if /usr/sbin/service raidraccoon onestatus >/dev/null 2>&1; then
+    OUT=$(/usr/sbin/service raidraccoon onerestart 2>&1) || {
+      echo "error: failed to restart raidraccoon service" >&2
+      echo "$OUT" >&2
+      exit 1
+    }
+  else
+    OUT=$(/usr/sbin/service raidraccoon onestart 2>&1) || {
+      echo "error: failed to start raidraccoon service" >&2
+      echo "$OUT" >&2
+      exit 1
+    }
+  fi
+
+  # Give daemon a moment to create the pidfile.
+  /bin/sleep 1
+  if ! /usr/sbin/service raidraccoon onestatus >/dev/null 2>&1; then
+    echo "error: raidraccoon did not start (service status follows)" >&2
+    /usr/sbin/service raidraccoon status 2>&1 || true
+    exit 1
+  fi
+fi
+
+echo "Installed raidraccoon to ${BIN_PATH}"
+echo "Config: ${CONFIG_PATH}"
+if [ "${INSTALL_RC}" -eq 1 ]; then
+  echo "Service: ${RCDIR}/raidraccoon"
+fi
+if [ "${ENABLE_SERVICE}" -eq 1 ]; then
+  echo "Autostart: enabled (toggle in the web UI under Settings -> System)"
+else
+  echo "Autostart: disabled (toggle in the web UI under Settings -> System)"
+fi
+
+if [ "${INSTALL_RC}" -eq 1 ] && [ "${START_SERVICE}" -eq 1 ]; then
+  echo "Service status: running"
+fi

@@ -1,0 +1,26 @@
+{{define "content"}}
+<div class="window">
+  <div class="window-title">Dashboard</div>
+  <div class="window-body">
+    <div class="dashboard-toolbar">
+      <div class="dashboard-actions">
+        <button id="dashboard-refresh" class="btn">Refresh</button>
+        <button id="dashboard-edit" class="btn">Customize</button>
+        <button id="dashboard-save" class="btn hidden">Save layout</button>
+        <button id="dashboard-cancel" class="btn hidden">Cancel</button>
+      </div>
+      <div id="dashboard-updated" class="muted tiny"></div>
+    </div>
+    <div id="dashboard-grid" class="dashboard-grid"></div>
+    <div id="dashboard-empty" class="muted hidden">No widgets enabled.</div>
+  </div>
+</div>
+
+<div id="dashboard-config-window" class="window hidden">
+  <div class="window-title">Widgets</div>
+  <div class="window-body">
+    <div id="dashboard-config" class="dashboard-config"></div>
+    <div class="muted tiny">Drag cards to reorder. Toggle checkboxes to show or hide widgets.</div>
+  </div>
+</div>
+{{end}}

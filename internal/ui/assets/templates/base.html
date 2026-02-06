@@ -1,0 +1,60 @@
+{{define "base"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <div class="checker"></div>
+  <header class="topbar">
+    <div class="logo">RaidRaccoon Deluxe</div>
+    <div class="banner">sudo/root actions enabled</div>
+    <nav class="menu">
+      <a href="/dashboard" class="{{if eq .Active "dashboard"}}active{{end}}">Dashboard</a>
+      <a href="/terminal" class="{{if eq .Active "terminal"}}active{{end}}">Terminal</a>
+      <a href="/samba/users" class="{{if or (eq .Active "samba-users") (eq .Active "samba-shares")}}active{{end}}">Samba Settings</a>
+      <a href="/zfs/pools" class="{{if eq .Active "zfs-pools"}}active{{end}}">ZFS Pools</a>
+      <a href="/zfs/mounts" class="{{if eq .Active "zfs-mounts"}}active{{end}}">ZFS Mounts</a>
+      <a href="/zfs/datasets" class="{{if eq .Active "zfs-datasets"}}active{{end}}">ZFS Datasets</a>
+      <a href="/zfs/snapshots" class="{{if or (eq .Active "zfs-snapshots") (eq .Active "zfs-schedules") (eq .Active "zfs-replication")}}active{{end}}">ZFS Snapshots</a>
+      <a href="/settings" class="{{if eq .Active "settings"}}active{{end}}">System Settings</a>
+    </nav>
+  </header>
+  <div class="layout">
+    <aside class="sidebar">
+      {{with asciiArt}}
+      <div class="ascii-logo" aria-hidden="true">
+        <pre class="ascii-logo-art">{{.}}</pre>
+      </div>
+      {{end}}
+
+      <h3>Control Deck</h3>
+      <p>Monochrome management for Samba + ZFS + cron snapshots.</p>
+      <div class="panel">
+        <div class="panel-title">Status</div>
+        <div id="global-status" class="muted">Idle</div>
+      </div>
+    </aside>
+    <main class="main">
+      <div id="error-banner" class="banner-error hidden"></div>
+      {{template "content" .}}
+    </main>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <div id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card">
+      <div id="modal-title" class="modal-title">Confirm</div>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn">Cancel</button>
+        <button id="modal-confirm" class="btn danger">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
+{{end}}

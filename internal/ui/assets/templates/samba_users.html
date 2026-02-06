@@ -1,0 +1,37 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">Samba Settings: Users</div>
+  <div class="window-body">
+    <div class="subnav">
+      <a class="btn active" href="/samba/users">Users</a>
+      <a class="btn" href="/samba/shares">Shares</a>
+    </div>
+    <form id="samba-user-form" class="form-grid" method="post" action="/api/samba/users">
+      <div>
+        <label for="samba-username">Username</label>
+        <input id="samba-username" name="username" required>
+      </div>
+      <div>
+        <label for="samba-password">Password</label>
+        <input id="samba-password" name="password" type="password" required>
+      </div>
+      <div>
+        <label for="samba-password2">Confirm Password</label>
+        <input id="samba-password2" name="password_confirm" type="password" required>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Add User</button>
+      </div>
+    </form>
+    <div class="table-wrap">
+      <table class="table" id="samba-users-table">
+        <thead>
+          <tr><th>User</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="samba-users-empty">No users found.</div>
+    </div>
+  </div>
+</section>
+{{end}}

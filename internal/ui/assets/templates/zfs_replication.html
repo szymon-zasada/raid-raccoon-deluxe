@@ -1,0 +1,230 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">ZFS Snapshots: Replication</div>
+  <div class="window-body">
+    <div class="subnav">
+      <button class="btn" type="button" data-nav="/zfs/snapshots">Snapshots</button>
+      <button class="btn" type="button" data-nav="/zfs/schedules">Snapshot Schedules</button>
+      <button class="btn active" type="button" data-nav="/zfs/replication">Replication</button>
+    </div>
+    <div class="dataset-layout">
+      <div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="repl-datasets-refresh">Refresh Datasets</button>
+          <input id="repl-dataset-filter" placeholder="Filter datasets">
+        </div>
+        <div class="muted tiny">Source dataset</div>
+        <div id="repl-dataset-tree" class="dataset-tree"></div>
+        <div class="empty" id="repl-dataset-empty">No datasets found.</div>
+        <div class="muted" id="repl-selected">Selected: -</div>
+      </div>
+      <div>
+        <form id="repl-form" class="form-grid" method="post" action="/api/zfs/replication">
+          <input type="hidden" id="repl-id" value="">
+          <div>
+            <label for="repl-source-select">Source dataset</label>
+            <select id="repl-source-select"></select>
+          </div>
+          <div>
+            <label for="repl-target-pool">Target pool</label>
+            <select id="repl-target-pool"></select>
+          </div>
+          <div>
+            <label for="repl-target-suffix">Target suffix</label>
+            <input id="repl-target-suffix" placeholder="data/backups">
+          </div>
+          <div>
+            <label for="repl-prefix">Snapshot prefix</label>
+            <input id="repl-prefix" placeholder="rrd-repl">
+          </div>
+          <div>
+            <label for="repl-retention">Retention (count)</label>
+            <input id="repl-retention" name="retention" type="number" min="0" value="7" required>
+          </div>
+          <div>
+            <label class="checkbox"><input id="repl-recursive" type="checkbox"> Replicate recursively</label>
+          </div>
+          <div>
+            <label class="checkbox"><input id="repl-force" type="checkbox"> Force rollback on target</label>
+          </div>
+          <div>
+            <label for="repl-enabled">Enabled</label>
+            <select id="repl-enabled">
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+          <div>
+            <label for="repl-mode">Mode</label>
+            <select id="repl-mode">
+              <option value="quick">Quick Preset</option>
+              <option value="advanced">Advanced Cron</option>
+            </select>
+          </div>
+          <div class="repl-quick">
+            <label for="repl-frequency">Preset</label>
+            <select id="repl-frequency">
+              <option value="hourly">Hourly</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="interval-hours">Every N hours</option>
+              <option value="interval-minutes">Every N minutes</option>
+            </select>
+          </div>
+          <div class="repl-quick">
+            <label for="repl-interval">Interval (N)</label>
+            <input id="repl-interval" type="number" min="1" max="59" value="2">
+          </div>
+          <div class="repl-quick">
+            <label for="repl-time">Time (HH:MM)</label>
+            <input id="repl-time" type="time" value="03:00">
+          </div>
+          <div class="repl-quick">
+            <label for="repl-day">Day (weekly=0-6, monthly=1-28)</label>
+            <input id="repl-day" type="number" min="0" max="28" value="1">
+          </div>
+          <div class="repl-advanced hidden">
+            <label for="repl-minute">Minute</label>
+            <input id="repl-minute" placeholder="0">
+          </div>
+          <div class="repl-advanced hidden">
+            <label for="repl-hour">Hour</label>
+            <input id="repl-hour" placeholder="0">
+          </div>
+          <div class="repl-advanced hidden">
+            <label for="repl-dom">Day of Month</label>
+            <input id="repl-dom" placeholder="*">
+          </div>
+          <div class="repl-advanced hidden">
+            <label for="repl-month">Month</label>
+            <input id="repl-month" placeholder="*">
+          </div>
+          <div class="repl-advanced hidden">
+            <label for="repl-dow">Day of Week</label>
+            <input id="repl-dow" placeholder="*">
+          </div>
+          <div class="muted" id="repl-preview">Cron: -</div>
+          <div class="muted tiny" id="repl-target-preview">Target dataset: -</div>
+          <div class="form-actions">
+            <button class="btn primary" type="submit" id="repl-save">Save Job</button>
+            <button class="btn" type="button" id="repl-reset">Reset</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table" id="repl-table">
+        <thead>
+          <tr><th>ID</th><th>Source</th><th>Target</th><th>Summary</th><th>Cron</th><th>Retention</th><th>Prefix</th><th>Enabled</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="repl-empty">No replication jobs configured.</div>
+    </div>
+    <div class="muted" id="repl-updated"></div>
+  </div>
+</section>
+
+<section class="window">
+  <div class="window-title">Rsync Jobs</div>
+  <div class="window-body">
+    <form id="rsync-form" class="form-grid" method="post" action="/api/rsync">
+      <input type="hidden" id="rsync-id" value="">
+      <div>
+        <label for="rsync-source">Source path</label>
+        <input id="rsync-source" placeholder="/mnt/data">
+      </div>
+      <div>
+        <label for="rsync-target">Target path</label>
+        <input id="rsync-target" placeholder="/mnt/backup">
+      </div>
+      <div>
+        <label for="rsync-mode">Mode</label>
+        <select id="rsync-mode">
+          <option value="mirror">Mirror (archive + delete)</option>
+          <option value="sync">Sync (archive)</option>
+          <option value="custom">Custom flags</option>
+        </select>
+      </div>
+      <div id="rsync-flags-wrap" class="hidden">
+        <label for="rsync-flags">Flags (comma-separated)</label>
+        <input id="rsync-flags" placeholder="-a,--delete,--stats">
+      </div>
+      <div>
+        <label for="rsync-enabled">Enabled</label>
+        <select id="rsync-enabled">
+          <option value="true">Enabled</option>
+          <option value="false">Disabled</option>
+        </select>
+      </div>
+      <div>
+        <label for="rsync-mode-cron">Schedule mode</label>
+        <select id="rsync-mode-cron">
+          <option value="quick">Quick Preset</option>
+          <option value="advanced">Advanced Cron</option>
+        </select>
+      </div>
+      <div class="rsync-quick">
+        <label for="rsync-frequency">Preset</label>
+        <select id="rsync-frequency">
+          <option value="hourly">Hourly</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="interval-hours">Every N hours</option>
+          <option value="interval-minutes">Every N minutes</option>
+        </select>
+      </div>
+      <div class="rsync-quick">
+        <label for="rsync-interval">Interval (N)</label>
+        <input id="rsync-interval" type="number" min="1" max="59" value="2">
+      </div>
+      <div class="rsync-quick">
+        <label for="rsync-time">Time (HH:MM)</label>
+        <input id="rsync-time" type="time" value="03:00">
+      </div>
+      <div class="rsync-quick">
+        <label for="rsync-day">Day (weekly=0-6, monthly=1-28)</label>
+        <input id="rsync-day" type="number" min="0" max="28" value="1">
+      </div>
+      <div class="rsync-advanced hidden">
+        <label for="rsync-minute">Minute</label>
+        <input id="rsync-minute" placeholder="0">
+      </div>
+      <div class="rsync-advanced hidden">
+        <label for="rsync-hour">Hour</label>
+        <input id="rsync-hour" placeholder="0">
+      </div>
+      <div class="rsync-advanced hidden">
+        <label for="rsync-dom">Day of Month</label>
+        <input id="rsync-dom" placeholder="*">
+      </div>
+      <div class="rsync-advanced hidden">
+        <label for="rsync-month">Month</label>
+        <input id="rsync-month" placeholder="*">
+      </div>
+      <div class="rsync-advanced hidden">
+        <label for="rsync-dow">Day of Week</label>
+        <input id="rsync-dow" placeholder="*">
+      </div>
+      <div class="muted" id="rsync-preview">Cron: -</div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit" id="rsync-save">Save Job</button>
+        <button class="btn" type="button" id="rsync-reset">Reset</button>
+      </div>
+    </form>
+    <div class="muted tiny">Flags must be comma-separated without spaces.</div>
+    <div class="table-wrap">
+      <table class="table" id="rsync-table">
+        <thead>
+          <tr><th>ID</th><th>Source</th><th>Target</th><th>Summary</th><th>Cron</th><th>Mode</th><th>Flags</th><th>Enabled</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="rsync-empty">No rsync jobs configured.</div>
+    </div>
+    <div class="muted" id="rsync-updated"></div>
+  </div>
+</section>
+{{end}}

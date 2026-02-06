@@ -1,0 +1,82 @@
+{
+  "_comment": "Example configuration for RaidRaccoon Deluxe. Copy to raidraccoon.json and adjust paths.",
+  "server": {
+    "listen_addr": "0.0.0.0:8080"
+  },
+  "auth": {
+    "_comment": "Run ./raidraccoon passwd to set a new password (salt + hash).",
+    "username": "admin",
+    "salt_hex": "",
+    "password_hash_hex": ""
+  },
+  "paths": {
+    "zfs": "/sbin/zfs",
+    "zpool": "/sbin/zpool",
+    "geom": "/sbin/geom",
+    "service": "/usr/sbin/service",
+    "smbpasswd": "/usr/local/bin/smbpasswd",
+    "pdbedit": "/usr/local/bin/pdbedit",
+    "testparm": "/usr/local/bin/testparm",
+    "sysctl": "/sbin/sysctl",
+    "sysrc": "/usr/sbin/sysrc",
+    "shutdown": "/sbin/shutdown",
+    "rsync": "/usr/local/bin/rsync"
+  },
+  "samba": {
+    "include_file": "/usr/local/etc/smb4.conf",
+    "reload_args": ["samba_server", "restart"],
+    "testparm_args": ["-s", "/usr/local/etc/smb4.conf"]
+  },
+  "zfs": {
+    "allowed_prefixes": ["tank", "zroot"],
+    "snapshot_prefix": "raidraccoon"
+  },
+  "cron": {
+    "cron_file": "/etc/crontab",
+    "cron_user": "root"
+  },
+  "terminal": {
+    "aliases": {
+      "zfs": "/sbin/zfs",
+      "zpool": "/sbin/zpool",
+      "geom": "/sbin/geom",
+      "service": "/usr/sbin/service",
+      "smbpasswd": "/usr/local/bin/smbpasswd",
+      "pdbedit": "/usr/local/bin/pdbedit",
+      "testparm": "/usr/local/bin/testparm",
+      "rsync": "/usr/local/bin/rsync"
+    },
+    "favorites": [],
+    "history_limit": 20
+  },
+  "dashboard": {
+    "widgets": [
+      { "id": "pools", "enabled": true },
+      { "id": "cache", "enabled": true },
+      { "id": "datasets", "enabled": true },
+      { "id": "snapshots", "enabled": true },
+      { "id": "schedules", "enabled": true },
+      { "id": "samba", "enabled": true },
+      { "id": "settings", "enabled": true }
+    ]
+  },
+  "limits": {
+    "max_request_bytes": 1048576,
+    "max_output_bytes": 1048576,
+    "max_runtime_seconds": 120
+  },
+  "audit": {
+    "log_file": "/var/log/raidraccoon-audit.log"
+  },
+  "allowed_cmds": [
+    "/sbin/zfs",
+    "/sbin/zpool",
+    "/sbin/geom",
+    "/usr/sbin/service",
+    "/usr/local/bin/smbpasswd",
+    "/usr/local/bin/pdbedit",
+    "/usr/local/bin/testparm",
+    "/usr/local/bin/rsync"
+  ],
+  "binary_path": "/usr/local/bin/raidraccoon"
+}

@@ -1,0 +1,37 @@
+{{define "content"}}
+<section class="window terminal-shell">
+  <div class="window-title">Terminal</div>
+  <div class="window-body terminal-grid">
+    <div class="terminal-side">
+      <div class="panel">
+        <div class="panel-title">Recent</div>
+        <div id="terminal-history" class="terminal-list"></div>
+        <div id="terminal-history-empty" class="empty hidden">No recent commands yet.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Favorites</div>
+        <div id="terminal-favorites" class="terminal-list"></div>
+        <div id="terminal-favorites-empty" class="empty hidden">No favorites yet.</div>
+      </div>
+    </div>
+    <div class="terminal-main">
+      <form id="cmd-form" class="form-row terminal-form" method="post" action="/api/cmd/run">
+        <label for="cmd-input">Command</label>
+        <div class="cmd-input-wrap">
+          <input id="cmd-input" name="cmd" placeholder="zpool status" autocomplete="off" required>
+          <div id="cmd-suggestions" class="suggestions hidden"></div>
+        </div>
+        <button class="btn primary" type="submit" data-action="run-cmd">Run</button>
+        <button class="btn" type="button" data-action="clear-output">Clear</button>
+      </form>
+      <div id="cmd-preview" class="muted cmd-preview">Resolved: -</div>
+      <div class="toolbar">
+        <label class="checkbox"><input type="checkbox" id="auto-scroll" checked> Auto-scroll</label>
+        <button class="btn" type="button" data-action="copy-output">Copy output</button>
+        <span id="cmd-status" class="muted">Idle</span>
+      </div>
+      <pre id="cmd-output" class="terminal"></pre>
+    </div>
+  </div>
+</section>
+{{end}}

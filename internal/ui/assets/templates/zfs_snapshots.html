@@ -1,0 +1,50 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">ZFS Snapshots: Snapshots</div>
+  <div class="window-body">
+    <div class="subnav">
+      <button class="btn active" type="button" data-nav="/zfs/snapshots">Snapshots</button>
+      <button class="btn" type="button" data-nav="/zfs/schedules">Snapshot Schedules</button>
+      <button class="btn" type="button" data-nav="/zfs/replication">Replication</button>
+    </div>
+    <div class="dataset-layout">
+      <div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="datasets-refresh">Refresh Datasets</button>
+          <input id="snapshot-dataset-filter" placeholder="Filter datasets">
+        </div>
+        <div id="snapshot-dataset-tree" class="dataset-tree"></div>
+        <div class="empty" id="snapshot-dataset-empty">No datasets found.</div>
+        <div class="muted" id="snapshot-selected">Selected: -</div>
+      </div>
+      <div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="refresh-snapshots">Refresh Snapshots</button>
+          <span class="muted">Snapshots for selected dataset</span>
+        </div>
+        <form id="snapshot-form" class="form-row" method="post" action="/api/zfs/snapshots">
+          <label for="snapshot-prefix">Prefix</label>
+          <input id="snapshot-prefix" name="prefix" placeholder="raidraccoon">
+          <label for="snapshot-name">Snapshot Name</label>
+          <input id="snapshot-name" name="name" placeholder="auto">
+          <label class="checkbox">
+            <input id="snapshot-recursive" type="checkbox" name="recursive">
+            Recursive
+          </label>
+          <button class="btn primary" type="submit">Create Snapshot</button>
+        </form>
+        <div class="muted" id="snapshot-preview"></div>
+        <div class="table-wrap">
+          <table class="table" id="zfs-snapshots-table">
+            <thead>
+              <tr><th>Name</th><th>Created</th><th>Actions</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="zfs-snapshots-empty">No snapshots found.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{{end}}

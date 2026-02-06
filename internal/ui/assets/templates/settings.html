@@ -1,0 +1,265 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">System Settings</div>
+  <div class="window-body">
+    <div class="panel">
+      <div class="panel-title">Config</div>
+      <div class="form-grid settings-grid">
+        <div>
+          <label>Config path</label>
+          <div id="settings-config-path" class="muted">-</div>
+        </div>
+        <div>
+          <label>Password status</label>
+          <div id="settings-password-status" class="muted">-</div>
+        </div>
+        <div>
+          <label>Restart required</label>
+          <div id="settings-restart" class="badge hidden">Restart required</div>
+        </div>
+      </div>
+    </div>
+
+    <form id="settings-form">
+      <div class="panel">
+        <div class="panel-title">Server</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-listen-addr">Listen address</label>
+            <input id="settings-listen-addr" name="listen_addr" placeholder="0.0.0.0:8080" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Auth</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-auth-username">Username</label>
+            <input id="settings-auth-username" name="auth_username" placeholder="admin" required>
+          </div>
+        </div>
+        <div class="drawer">
+          <div class="panel-title">Update password</div>
+          <div class="form-grid settings-grid">
+            <div>
+              <label for="settings-auth-password">New password</label>
+              <input id="settings-auth-password" type="password" autocomplete="new-password">
+            </div>
+            <div>
+              <label for="settings-auth-password-confirm">Confirm password</label>
+              <input id="settings-auth-password-confirm" type="password" autocomplete="new-password">
+            </div>
+          </div>
+          <div class="form-actions">
+            <button id="settings-auth-save" class="btn" type="button">Update password</button>
+            <span class="muted">Requires restart to take effect.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Paths</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-path-zfs">ZFS</label>
+            <input id="settings-path-zfs" placeholder="/sbin/zfs" required>
+          </div>
+          <div>
+            <label for="settings-path-zpool">ZPool</label>
+            <input id="settings-path-zpool" placeholder="/sbin/zpool" required>
+          </div>
+          <div>
+            <label for="settings-path-geom">Geom</label>
+            <input id="settings-path-geom" placeholder="/sbin/geom" required>
+          </div>
+          <div>
+            <label for="settings-path-service">Service</label>
+            <input id="settings-path-service" placeholder="/usr/sbin/service" required>
+          </div>
+          <div>
+            <label for="settings-path-smbpasswd">smbpasswd</label>
+            <input id="settings-path-smbpasswd" placeholder="/usr/local/bin/smbpasswd" required>
+          </div>
+          <div>
+            <label for="settings-path-pdbedit">pdbedit</label>
+            <input id="settings-path-pdbedit" placeholder="/usr/local/bin/pdbedit" required>
+          </div>
+          <div>
+            <label for="settings-path-testparm">testparm</label>
+            <input id="settings-path-testparm" placeholder="/usr/local/bin/testparm" required>
+          </div>
+          <div>
+            <label for="settings-path-rsync">rsync</label>
+            <input id="settings-path-rsync" placeholder="/usr/local/bin/rsync" required>
+          </div>
+          <div>
+            <label for="settings-path-sysctl">sysctl</label>
+            <input id="settings-path-sysctl" placeholder="/sbin/sysctl" required>
+          </div>
+          <div>
+            <label for="settings-path-sysrc">sysrc</label>
+            <input id="settings-path-sysrc" placeholder="/usr/sbin/sysrc" required>
+          </div>
+          <div>
+            <label for="settings-path-shutdown">shutdown</label>
+            <input id="settings-path-shutdown" placeholder="/sbin/shutdown" required>
+          </div>
+        </div>
+        <div class="muted tiny">All paths must be absolute.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Samba</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-samba-include">Config file</label>
+            <input id="settings-samba-include" placeholder="/usr/local/etc/smb4.conf" required>
+          </div>
+          <div>
+            <label for="settings-samba-reload">Reload args</label>
+            <input id="settings-samba-reload" placeholder="samba_server restart" required>
+          </div>
+          <div>
+            <label for="settings-samba-testparm">Testparm args</label>
+            <input id="settings-samba-testparm" placeholder="-s /usr/local/etc/smb4.conf" required>
+          </div>
+        </div>
+        <div class="muted tiny">Arguments are space-separated.</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">ZFS</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-zfs-prefixes">Allowed prefixes</label>
+            <textarea id="settings-zfs-prefixes" rows="3" placeholder="tank\nzroot"></textarea>
+            <div class="muted tiny">One prefix per line.</div>
+          </div>
+          <div>
+            <label for="settings-zfs-snap-prefix">Snapshot prefix</label>
+            <input id="settings-zfs-snap-prefix" placeholder="raidraccoon" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Cron</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-cron-file">Cron file</label>
+            <input id="settings-cron-file" placeholder="/etc/crontab" required>
+          </div>
+          <div>
+            <label for="settings-cron-user">Cron user</label>
+            <input id="settings-cron-user" placeholder="root">
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Terminal</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-terminal-aliases">Aliases</label>
+            <textarea id="settings-terminal-aliases" rows="4" placeholder="zpool=/sbin/zpool"></textarea>
+            <div class="muted tiny">One alias per line, format: name=/abs/path.</div>
+          </div>
+          <div>
+            <label for="settings-terminal-favorites">Favorites</label>
+            <textarea id="settings-terminal-favorites" rows="4" placeholder="zpool status"></textarea>
+            <div class="muted tiny">One command per line.</div>
+          </div>
+          <div>
+            <label for="settings-terminal-history">History limit</label>
+            <input id="settings-terminal-history" type="number" min="1" step="1" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Limits</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-limit-request">Max request bytes</label>
+            <input id="settings-limit-request" type="number" min="1" step="1" required>
+          </div>
+          <div>
+            <label for="settings-limit-output">Max output bytes</label>
+            <input id="settings-limit-output" type="number" min="1" step="1" required>
+          </div>
+          <div>
+            <label for="settings-limit-runtime">Max runtime seconds</label>
+            <input id="settings-limit-runtime" type="number" min="1" step="1" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Audit</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-audit-file">Audit log file</label>
+            <input id="settings-audit-file" placeholder="/var/log/raidraccoon-audit.log" required>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Allowed commands</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-allowed-cmds">Terminal allowlist</label>
+            <textarea id="settings-allowed-cmds" rows="4" placeholder="/sbin/zfs"></textarea>
+            <div class="muted tiny">One absolute path per line.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Binary</div>
+        <div class="form-grid settings-grid">
+          <div>
+            <label for="settings-binary-path">Binary path</label>
+            <input id="settings-binary-path" placeholder="/usr/local/bin/raidraccoon">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions settings-actions">
+        <button id="settings-save" class="btn primary" type="submit">Save settings</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="window">
+  <div class="window-title">System</div>
+  <div class="window-body">
+    <div class="panel">
+      <div class="panel-title">Autostart</div>
+      <label class="checkbox"><input id="settings-autostart" type="checkbox"> Launch at system boot</label>
+      <div id="settings-autostart-status" class="muted">-</div>
+      <div id="settings-autostart-note" class="muted tiny"></div>
+    </div>
+    <div class="panel danger-zone">
+      <div class="panel-title">Power</div>
+      <div class="power-actions">
+        <button class="btn danger icon-btn" type="button" data-action="system-reboot">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 12a8 8 0 0 1 13.7-5.7L20 8M20 4v4h-4" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="square" stroke-linejoin="miter" />
+          </svg>
+          Reboot
+        </button>
+        <button class="btn danger icon-btn" type="button" data-action="system-shutdown">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2v8M6.2 4.8a8 8 0 1 0 11.6 0" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="square" />
+          </svg>
+          Shutdown
+        </button>
+      </div>
+      <div class="muted tiny">Actions execute immediately on the host.</div>
+    </div>
+  </div>
+</section>
+{{end}}

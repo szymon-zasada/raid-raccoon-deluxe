@@ -1,0 +1,56 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">Create Pool</div>
+  <div class="window-body">
+    <form id="pool-create-form" class="pool-create-grid" method="post" action="/api/zfs/pools">
+      <div>
+        <label for="pool-name">Pool Name</label>
+        <input id="pool-name" placeholder="tank" required>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Data Devices</div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="pool-devices-refresh">Refresh Devices</button>
+          <span class="muted tiny">Only devices not in a pool are listed.</span>
+        </div>
+        <div id="pool-device-list" class="device-list"></div>
+        <div id="pool-device-empty" class="muted tiny hidden">No available devices.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">Cache (L2ARC)</div>
+        <label class="checkbox">
+          <input id="pool-cache-enabled" type="checkbox">
+          Use cache device
+        </label>
+        <select id="pool-cache-device" disabled>
+          <option value="">Select cache device</option>
+        </select>
+        <div class="muted tiny">Cache device must not be in the data device list.</div>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit">Create Pool</button>
+      </div>
+    </form>
+    <div class="muted tiny">Pool creation will wipe the selected devices.</div>
+  </div>
+</section>
+
+<section class="window">
+  <div class="window-title">ZFS Pools</div>
+  <div class="window-body">
+    <div class="table-wrap">
+      <table class="table" id="zfs-pools-table">
+        <thead>
+          <tr><th>Name</th><th>Size</th><th>Alloc</th><th>Free</th><th>Health</th><th>Cached</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="zfs-pools-empty">No pools found.</div>
+    </div>
+    <div id="pool-status" class="drawer hidden">
+      <div class="drawer-title">Pool Status</div>
+      <pre id="pool-status-output"></pre>
+    </div>
+  </div>
+</section>
+{{end}}

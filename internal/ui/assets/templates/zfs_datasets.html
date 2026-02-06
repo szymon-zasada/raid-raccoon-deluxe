@@ -1,0 +1,92 @@
+{{define "content"}}
+<section class="window">
+  <div class="window-title">ZFS Datasets</div>
+  <div class="window-body">
+    <div class="dataset-layout">
+      <div>
+        <div class="toolbar">
+          <button class="btn" type="button" data-action="datasets-refresh">Refresh</button>
+          <input id="datasets-filter" placeholder="Filter datasets">
+        </div>
+        <div id="datasets-tree" class="dataset-tree"></div>
+        <div class="empty" id="datasets-empty">No datasets found.</div>
+      </div>
+      <div class="dataset-side">
+        <div class="panel">
+          <div class="panel-title" id="dataset-form-title">Create Dataset</div>
+          <div class="muted" id="dataset-form-note">Leave fields blank to keep defaults.</div>
+          <form id="dataset-form" class="form-grid dataset-form-grid" method="post" action="/api/zfs/datasets">
+            <input type="hidden" id="dataset-mode" value="create">
+            <input type="hidden" id="dataset-current" value="">
+            <div class="dataset-field-name">
+              <label for="dataset-name">Dataset Name (current)</label>
+              <input id="dataset-name" name="name" placeholder="tank/data" required>
+            </div>
+            <div class="dataset-edit-only hidden dataset-field-newname">
+              <label for="dataset-new-name">New Name</label>
+              <input id="dataset-new-name" name="new_name" placeholder="tank/newname">
+            </div>
+            <div class="dataset-field-type">
+              <label for="dataset-kind">Type</label>
+              <select id="dataset-kind" name="kind">
+                <option value="filesystem">Filesystem</option>
+                <option value="volume">Volume (zvol)</option>
+              </select>
+            </div>
+            <div class="dataset-field-size">
+              <label for="dataset-size">Volume Size</label>
+              <div class="field-row">
+                <input id="dataset-size" name="size" placeholder="10G">
+                <button class="btn" type="button" id="dataset-size-max">Set Max</button>
+              </div>
+              <div class="muted" id="dataset-size-hint">Volume size applies to zvols only.</div>
+            </div>
+            <div class="dataset-field-quota">
+              <label for="dataset-quota">Quota (limit dataset size)</label>
+              <div class="field-row">
+                <input id="dataset-quota" name="quota" placeholder="200G">
+                <button class="btn" type="button" id="dataset-quota-max">Set Max</button>
+              </div>
+              <div class="muted">Applies to filesystems; blank to keep unchanged.</div>
+            </div>
+            <div class="dataset-field-mountpoint">
+              <label for="dataset-mountpoint">Mountpoint</label>
+              <input id="dataset-mountpoint" name="mountpoint" placeholder="/mnt/data">
+              <div class="muted tiny">Where the filesystem mounts.</div>
+            </div>
+            <div class="dataset-field-canmount">
+              <label for="dataset-canmount">Canmount</label>
+              <select id="dataset-canmount" name="canmount">
+                <option value="">Keep default</option>
+                <option value="on">on</option>
+                <option value="off">off</option>
+                <option value="noauto">noauto</option>
+              </select>
+            </div>
+            <div class="dataset-field-compression">
+              <label for="dataset-compression">Compression</label>
+              <input id="dataset-compression" name="compression" placeholder="lz4">
+            </div>
+            <div class="dataset-field-atime">
+              <label for="dataset-atime">Atime</label>
+              <select id="dataset-atime" name="atime">
+                <option value="">Keep default</option>
+                <option value="on">on</option>
+                <option value="off">off</option>
+              </select>
+            </div>
+            <div class="form-actions dataset-field-actions">
+              <button class="btn primary" type="submit" id="dataset-save">Save Dataset</button>
+              <button class="btn" type="button" id="dataset-reset">Reset</button>
+            </div>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="panel-title">Selected Dataset</div>
+          <div id="dataset-details" class="muted">Select a dataset to see details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{{end}}
