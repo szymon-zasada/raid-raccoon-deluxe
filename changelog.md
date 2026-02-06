@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-02-06
+- Installer now defaults to downloading GitHub release binaries (latest stable by default) instead of auto-using local `./raidraccoon`.
+- Installer release tag handling now accepts both `1.0.x` and `v1.0.x` format and uses stricter asset URL matching.
 - Removed ZFS dataset prefix restrictions from backend validation and settings UI.
 - Updated snapshots/schedules/replication dataset pickers to list all datasets without allowlist filtering.
 - Grouped Samba Users/Shares under a single “Samba Settings” top nav entry.

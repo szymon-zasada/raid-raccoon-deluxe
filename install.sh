@@ -10,8 +10,8 @@ usage() {
 Usage: install.sh [options]
 
 Options:
-  --bin PATH         Path to raidraccoon binary (default: ./raidraccoon or build if go is available).
-  --version TAG      GitHub release tag to install (default: latest).
+  --bin PATH         Path to raidraccoon binary (default: download latest stable release).
+  --version TAG      GitHub release tag to install (default: latest stable release).
   --asset NAME       Override GitHub release asset name (default: raidraccoon-<os>-<arch>).
   --config PATH      Config path (default: /usr/local/etc/raidraccoon.json).
   --user NAME        Service user (default: raidraccoon).
@@ -202,6 +202,12 @@ download_release() {
   fi
   api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
   if [ "$RELEASE_TAG" != "latest" ]; then
+    case "$RELEASE_TAG" in
+      v*) ;;
+      [0-9]*)
+        RELEASE_TAG="v${RELEASE_TAG}"
+        ;;
+    esac
     api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${RELEASE_TAG}"
   fi
   json_tmp=$(/usr/bin/mktemp -t raidraccoon.release)
@@ -210,7 +216,22 @@ download_release() {
     echo "error: failed to fetch release metadata." >&2
     exit 1
   fi
-  asset_url=$(/usr/bin/grep -E "\"browser_download_url\": \"[^\"]*${ASSET_NAME}\"" "$json_tmp" | /usr/bin/head -n 1 | /usr/bin/sed -e 's/.*"browser_download_url": "\([^"]*\)".*/\1/')
+  asset_url=$(/usr/bin/awk -v asset="$ASSET_NAME" '
+    /"name":/ {
+      name=$0
+      sub(/^.*"name":[[:space:]]*"/, "", name)
+      sub(/".*$/, "", name)
+    }
+    /"browser_download_url":/ {
+      url=$0
+      sub(/^.*"browser_download_url":[[:space:]]*"/, "", url)
+      sub(/".*$/, "", url)
+      if (name == asset) {
+        print url
+        exit
+      }
+    }
+  ' "$json_tmp")
   /bin/rm -f "$json_tmp"
   if [ -z "$asset_url" ]; then
     echo "error: release asset not found (${ASSET_NAME})." >&2
@@ -228,20 +249,7 @@ download_release() {
 }
 
 if [ -z "$SRC_BIN" ]; then
-  if [ -x "$SCRIPT_DIR/raidraccoon" ]; then
-    SRC_BIN="$SCRIPT_DIR/raidraccoon"
-  elif [ -x "./raidraccoon" ]; then
-    SRC_BIN="./raidraccoon"
-  elif [ -f "$SCRIPT_DIR/go.mod" ] && command -v go >/dev/null 2>&1; then
-    GO_BIN=$(command -v go)
-    BUILD_BIN=$(/usr/bin/mktemp -t raidraccoon.bin)
-    echo "Building raidraccoon with ${GO_BIN}..."
-    (cd "$SCRIPT_DIR" && CGO_ENABLED=0 "$GO_BIN" build -o "$BUILD_BIN" ./cmd/raidraccoon)
-    SRC_BIN="$BUILD_BIN"
-    CLEANUP_BIN=1
-  else
-    download_release
-  fi
+  download_release
 fi
 
 # Ensure install directories exist
