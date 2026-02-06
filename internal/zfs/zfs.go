@@ -359,23 +359,11 @@ func EnforceRetention(ctx context.Context, cfg config.Config, dataset, prefix st
 	return destroyed, nil
 }
 
-// ValidateDataset enforces the allowlist in cfg.ZFS.AllowedPrefixes.
+// ValidateDataset performs lightweight dataset-name validation.
+// Prefix allowlists are intentionally not enforced.
 func ValidateDataset(cfg config.Config, dataset string) bool {
-	if dataset == "" {
-		return false
-	}
-	if len(cfg.ZFS.AllowedPrefixes) == 0 {
-		return true
-	}
-	for _, prefix := range cfg.ZFS.AllowedPrefixes {
-		if prefix == "*" {
-			return true
-		}
-		if dataset == prefix || strings.HasPrefix(dataset, prefix+"/") {
-			return true
-		}
-	}
-	return false
+	_ = cfg
+	return ValidDatasetName(strings.TrimSpace(dataset))
 }
 
 func ValidPoolName(name string) bool {
@@ -472,15 +460,22 @@ func PoolCacheDevices(ctx context.Context, cfg config.Config, pool string) ([]st
 
 // ValidDatasetName is a syntactic check (not an allowlist check).
 func ValidDatasetName(name string) bool {
+	name = strings.TrimSpace(name)
 	if name == "" {
 		return false
 	}
 	if strings.Contains(name, "@") {
 		return false
 	}
-	parts := strings.Split(name, "/")
-	for _, part := range parts {
-		if part == "" || !validToken(part) {
+	if strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") {
+		return false
+	}
+	if strings.Contains(name, "//") {
+		return false
+	}
+	for _, r := range name {
+		// Keep control and NUL out of command args.
+		if r < 32 || r == 127 {
 			return false
 		}
 	}

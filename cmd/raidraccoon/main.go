@@ -176,7 +176,7 @@ func runSnapshot(args []string) {
 		os.Exit(1)
 	}
 	if !zfs.ValidateDataset(cfg, *dataset) {
-		fmt.Fprintln(os.Stderr, "dataset not allowed")
+		fmt.Fprintln(os.Stderr, "invalid dataset name")
 		os.Exit(1)
 	}
 	snapPrefix := *prefix
@@ -218,11 +218,11 @@ func runReplicate(args []string) {
 		os.Exit(1)
 	}
 	if !zfs.ValidDatasetName(*source) || !zfs.ValidateDataset(cfg, *source) {
-		fmt.Fprintln(os.Stderr, "source dataset not allowed")
+		fmt.Fprintln(os.Stderr, "invalid source dataset")
 		os.Exit(1)
 	}
 	if !zfs.ValidDatasetName(*target) || !zfs.ValidateDataset(cfg, *target) {
-		fmt.Fprintln(os.Stderr, "target dataset not allowed")
+		fmt.Fprintln(os.Stderr, "invalid target dataset")
 		os.Exit(1)
 	}
 	if *prefix != "" && !zfs.ValidSnapshotToken(*prefix) {

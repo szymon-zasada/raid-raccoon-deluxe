@@ -221,7 +221,6 @@ func cloneConfig(cfg config.Config) config.Config {
 	out := cfg
 	out.Samba.ReloadArgs = append([]string{}, cfg.Samba.ReloadArgs...)
 	out.Samba.TestparmArgs = append([]string{}, cfg.Samba.TestparmArgs...)
-	out.ZFS.AllowedPrefixes = append([]string{}, cfg.ZFS.AllowedPrefixes...)
 	out.Terminal.Aliases = cloneMap(cfg.Terminal.Aliases)
 	out.Terminal.Favorites = append([]string{}, cfg.Terminal.Favorites...)
 	out.Dashboard.Widgets = append([]config.DashboardWidget{}, cfg.Dashboard.Widgets...)
@@ -381,7 +380,6 @@ func normalizeSettings(req *settingsPayload) {
 	req.Samba.IncludeFile = strings.TrimSpace(req.Samba.IncludeFile)
 	req.Samba.ReloadArgs = cleanList(req.Samba.ReloadArgs)
 	req.Samba.TestparmArgs = cleanList(req.Samba.TestparmArgs)
-	req.ZFS.AllowedPrefixes = cleanList(req.ZFS.AllowedPrefixes)
 	req.ZFS.SnapshotPrefix = strings.TrimSpace(req.ZFS.SnapshotPrefix)
 	req.Cron.CronFile = strings.TrimSpace(req.Cron.CronFile)
 	req.Cron.CronUser = strings.TrimSpace(req.Cron.CronUser)

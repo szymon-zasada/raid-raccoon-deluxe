@@ -57,6 +57,28 @@ warn_cmd() {
   return 0
 }
 
+ensure_pkg() {
+  pkg_name="$1"
+  bin_path="$2"
+  label="$3"
+  if [ -x "$bin_path" ]; then
+    return 0
+  fi
+  if [ ! -x /usr/sbin/pkg ]; then
+    echo "error: missing pkg (/usr/sbin/pkg); cannot install ${pkg_name}." >&2
+    exit 1
+  fi
+  echo "Installing ${pkg_name} (${label})..."
+  if ! /usr/sbin/pkg install -y "$pkg_name"; then
+    echo "error: failed to install ${pkg_name}." >&2
+    exit 1
+  fi
+  if [ ! -x "$bin_path" ]; then
+    echo "error: ${pkg_name} installed but ${label} still missing (${bin_path})." >&2
+    exit 1
+  fi
+}
+
 # Defaults (override via CLI flags)
 PREFIX="/usr/local"        # install prefix for bin/etc/rc.d
 SRC_BIN=""                 # source binary path (auto-detect/build if empty)
@@ -125,7 +147,7 @@ warn_cmd /usr/sbin/sysrc "sysrc"
 warn_cmd /usr/local/bin/smbpasswd "smbpasswd (Samba users)"
 warn_cmd /usr/local/bin/pdbedit "pdbedit (Samba users)"
 warn_cmd /usr/local/bin/testparm "testparm (Samba shares)"
-warn_cmd /usr/local/bin/rsync "rsync (Rsync jobs)"
+ensure_pkg rsync /usr/local/bin/rsync "rsync (Rsync jobs)"
 
 # Derived paths
 BINDIR="$PREFIX/bin"

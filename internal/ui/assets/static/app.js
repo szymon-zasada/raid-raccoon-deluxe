@@ -221,9 +221,8 @@
     const renderNode = (node, wrap, depth, forceOpen) => {
       const children = Array.from(node.children.values()).sort((a, b) => a.name.localeCompare(b.name));
       children.forEach((child) => {
-        const disallowed = child.data && child.data.allowed === false;
         const row = document.createElement('div');
-        row.className = `dataset-row${state.selected === child.full ? ' selected' : ''}${disallowed ? ' disabled' : ''}`;
+        row.className = `dataset-row${state.selected === child.full ? ' selected' : ''}`;
         row.style.paddingLeft = `${depth * 12}px`;
         const toggle = document.createElement('button');
         toggle.type = 'button';
@@ -244,10 +243,6 @@
         nameBtn.dataset.action = 'dataset-select';
         nameBtn.dataset.name = child.full;
         nameBtn.textContent = child.name;
-        if (disallowed && opts.allowDisallowed === false) {
-          nameBtn.disabled = true;
-          nameBtn.classList.add('disabled');
-        }
         row.appendChild(toggle);
         row.appendChild(nameBtn);
 
@@ -262,9 +257,6 @@
           const maxBytes = usedBytes !== null && availBytes !== null ? usedBytes + availBytes : null;
           const maxText = maxBytes !== null ? formatSize(maxBytes) : (child.data.available || '?');
           label.textContent = `${type} ${child.data.used} used / ${maxText} max`;
-          if (disallowed) {
-            label.textContent += ' (not allowed)';
-          }
           meta.appendChild(label);
           if (maxBytes !== null && usedBytes !== null && maxBytes > 0) {
             const bar = document.createElement('div');
@@ -280,7 +272,7 @@
           row.appendChild(meta);
         }
 
-        if ((opts.onEdit || opts.onDestroy) && !disallowed) {
+        if (opts.onEdit || opts.onDestroy) {
           const actions = document.createElement('div');
           actions.className = 'dataset-actions';
           if (opts.onEdit) {
@@ -430,11 +422,6 @@
   const parseLines = (value) => {
     if (!value) return [];
     return value.split(/\r?\n/).map((item) => item.trim()).filter((item) => item);
-  };
-
-  const parseCSVLines = (value) => {
-    if (!value) return [];
-    return value.split(/[\n,]/).map((item) => item.trim()).filter((item) => item);
   };
 
   const parseArgs = (value) => {
@@ -1973,14 +1960,10 @@
 
     const loadDatasets = async () => {
       const datasets = await api('GET', '/api/zfs/datasets');
-      const allowed = datasets.filter((ds) => ds.allowed !== false);
-      picker.setDatasets(allowed);
-      if (datasets.length && allowed.length === 0) {
-        showBanner('no datasets allowed', 'update zfs.allowed_prefixes in config');
-      }
-      if (allowed.length) {
+      picker.setDatasets(datasets);
+      if (datasets.length) {
         if (!picker.getSelected()) {
-          picker.setSelected(allowed[0].name);
+          picker.setSelected(datasets[0].name);
         }
       } else {
         picker.setSelected('');
@@ -2113,7 +2096,6 @@
           ['Max (approx)', maxBytes === null ? '-' : formatSize(maxBytes)],
           ['Referenced', data.referenced || '-'],
           ['Mountpoint', data.mountpoint || '-'],
-          ['Allowed', data.allowed === false ? 'No (update zfs.allowed_prefixes)' : 'Yes'],
         ];
         rows.forEach(([label, value]) => {
           const line = document.createElement('div');
@@ -2555,14 +2537,10 @@
       if (btn) {
         api('GET', '/api/zfs/datasets')
           .then((datasets) => {
-            const allowed = datasets.filter((ds) => ds.allowed !== false);
-            picker.setDatasets(allowed);
-            if (datasets.length && allowed.length === 0) {
-              showBanner('no datasets allowed', 'update zfs.allowed_prefixes in config');
-            }
-            if (allowed.length) {
+            picker.setDatasets(datasets);
+            if (datasets.length) {
               if (!picker.getSelected()) {
-                picker.setSelected(allowed[0].name);
+                picker.setSelected(datasets[0].name);
               }
             } else {
               picker.setSelected('');
@@ -2586,13 +2564,9 @@
 
     api('GET', '/api/zfs/datasets')
       .then((datasets) => {
-        const allowed = datasets.filter((ds) => ds.allowed !== false);
-        picker.setDatasets(allowed);
-        if (datasets.length && allowed.length === 0) {
-          showBanner('no datasets allowed', 'update zfs.allowed_prefixes in config');
-        }
-        if (allowed.length) {
-          picker.setSelected(allowed[0].name);
+        picker.setDatasets(datasets);
+        if (datasets.length) {
+          picker.setSelected(datasets[0].name);
         } else {
           picker.setSelected('');
         }
@@ -2788,10 +2762,9 @@
 
     const loadReplDatasets = async () => {
       const datasets = await api('GET', '/api/zfs/datasets');
-      const allowed = datasets.filter((ds) => ds.allowed !== false);
-      replSourceList = allowed.map((ds) => ds.name);
+      replSourceList = datasets.map((ds) => ds.name);
       if (replPicker) {
-        replPicker.setDatasets(allowed);
+        replPicker.setDatasets(datasets);
       }
       if (replSourceSelect) {
         const current = replSourceSelect.value;
@@ -2806,11 +2779,8 @@
           replSourceSelect.value = current;
         }
       }
-      if (datasets.length && allowed.length === 0) {
-        showBanner('no datasets allowed', 'update zfs.allowed_prefixes in config');
-      }
       const selected = replPicker ? replPicker.getSelected() : '';
-      if (allowed.length && !selected && replSourceList.length) {
+      if (datasets.length && !selected && replSourceList.length) {
         setReplSource(replSourceList[0]);
       }
     };
@@ -3259,7 +3229,6 @@
     const sambaReload = document.getElementById('settings-samba-reload');
     const sambaTestparm = document.getElementById('settings-samba-testparm');
 
-    const zfsPrefixes = document.getElementById('settings-zfs-prefixes');
     const zfsSnapPrefix = document.getElementById('settings-zfs-snap-prefix');
 
     const cronFile = document.getElementById('settings-cron-file');
@@ -3327,7 +3296,6 @@
       sambaReload.value = (sambaCfg.reload_args || []).join(' ');
       sambaTestparm.value = (sambaCfg.testparm_args || []).join(' ');
 
-      zfsPrefixes.value = (zfsCfg.allowed_prefixes || []).join('\n');
       zfsSnapPrefix.value = zfsCfg.snapshot_prefix || '';
 
       cronFile.value = cronCfg.cron_file || '';
@@ -3396,7 +3364,6 @@
           testparm_args: parseArgs(sambaTestparm.value),
         },
         zfs: {
-          allowed_prefixes: parseCSVLines(zfsPrefixes.value),
           snapshot_prefix: zfsSnapPrefix.value.trim(),
         },
         cron: {

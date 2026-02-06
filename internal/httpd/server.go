@@ -27,15 +27,15 @@ import (
 )
 
 type Server struct {
-	cfg      config.Config
-	mux      *http.ServeMux
-	jobs     *JobManager
-	audit    *audit.Logger
-	terminal *TerminalState
-	cfgMu    sync.Mutex
-	importMu         sync.Mutex
-	importablePools  []zfs.ImportablePool
-	importableErr    string
+	cfg               config.Config
+	mux               *http.ServeMux
+	jobs              *JobManager
+	audit             *audit.Logger
+	terminal          *TerminalState
+	cfgMu             sync.Mutex
+	importMu          sync.Mutex
+	importablePools   []zfs.ImportablePool
+	importableErr     string
 	importableChecked time.Time
 }
 
@@ -797,7 +797,7 @@ func (s *Server) handleZFSMounts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidateDataset(s.cfg, req.Dataset) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		if req.Action == "" {
@@ -1068,7 +1068,6 @@ func (s *Server) handleZFSDatasets(w http.ResponseWriter, r *http.Request) {
 			Available  string `json:"available"`
 			Referenced string `json:"referenced"`
 			Mountpoint string `json:"mountpoint"`
-			Allowed    bool   `json:"allowed"`
 		}
 		views := make([]datasetView, 0, len(data))
 		for _, ds := range data {
@@ -1079,7 +1078,6 @@ func (s *Server) handleZFSDatasets(w http.ResponseWriter, r *http.Request) {
 				Available:  ds.Available,
 				Referenced: ds.Referenced,
 				Mountpoint: ds.Mountpoint,
-				Allowed:    zfs.ValidateDataset(s.cfg, ds.Name),
 			})
 		}
 		s.writeJSON(w, http.StatusOK, apiEnvelope{Ok: true, Data: views})
@@ -1102,7 +1100,7 @@ func (s *Server) handleZFSDatasets(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidateDataset(s.cfg, req.Name) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		kind := strings.ToLower(strings.TrimSpace(req.Kind))
@@ -1152,7 +1150,7 @@ func (s *Server) handleZFSDatasetItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !zfs.ValidateDataset(s.cfg, name) {
-		s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+		s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 		return
 	}
 	switch r.Method {
@@ -1171,7 +1169,7 @@ func (s *Server) handleZFSDatasetItem(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if !zfs.ValidateDataset(s.cfg, newName) {
-				s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+				s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 				return
 			}
 		}
@@ -1249,7 +1247,7 @@ func (s *Server) handleZFSSnapshots(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidateDataset(s.cfg, dataset) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		snaps, err := zfs.ListSnapshots(r.Context(), s.cfg, dataset)
@@ -1273,7 +1271,7 @@ func (s *Server) handleZFSSnapshots(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidateDataset(s.cfg, req.Dataset) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		name := req.Name
@@ -1361,7 +1359,7 @@ func (s *Server) handleSchedules(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidateDataset(s.cfg, req.Dataset) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed"})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		file, err := cron.Load(s.cfg.Cron.CronFile, s.cfg.Cron.CronUser)
@@ -1402,7 +1400,7 @@ func (s *Server) handleScheduleItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if req.Dataset != "" && !zfs.ValidateDataset(s.cfg, req.Dataset) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid dataset name"})
 			return
 		}
 		file, err := cron.Load(s.cfg.Cron.CronFile, s.cfg.Cron.CronUser)
@@ -1508,11 +1506,11 @@ func (s *Server) handleZFSReplication(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if !zfs.ValidDatasetName(req.Source) || !zfs.ValidateDataset(s.cfg, req.Source) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "source dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid source dataset"})
 			return
 		}
 		if !zfs.ValidDatasetName(req.Target) || !zfs.ValidateDataset(s.cfg, req.Target) {
-			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "target dataset not allowed", Details: allowedPrefixDetails(s.cfg)})
+			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "invalid target dataset"})
 			return
 		}
 		prefix := strings.TrimSpace(req.Prefix)
@@ -1920,14 +1918,14 @@ func updateReplication(items []cron.Schedule, id string, req replicationUpdateRe
 		if req.Source != "" {
 			source := strings.TrimSpace(req.Source)
 			if !zfs.ValidDatasetName(source) || !zfs.ValidateDataset(cfg, source) {
-				return items, fmt.Errorf("source dataset not allowed")
+				return items, fmt.Errorf("invalid source dataset")
 			}
 			meta["source"] = source
 		}
 		if req.Target != "" {
 			target := strings.TrimSpace(req.Target)
 			if !zfs.ValidDatasetName(target) || !zfs.ValidateDataset(cfg, target) {
-				return items, fmt.Errorf("target dataset not allowed")
+				return items, fmt.Errorf("invalid target dataset")
 			}
 			meta["target"] = target
 		}
@@ -2051,18 +2049,6 @@ func filterDatasetProps(props map[string]string) map[string]string {
 		out[k] = v
 	}
 	return out
-}
-
-func allowedPrefixDetails(cfg config.Config) string {
-	if len(cfg.ZFS.AllowedPrefixes) == 0 {
-		return "all datasets allowed (zfs.allowed_prefixes is empty)"
-	}
-	for _, prefix := range cfg.ZFS.AllowedPrefixes {
-		if prefix == "*" {
-			return "all datasets allowed (zfs.allowed_prefixes includes '*')"
-		}
-	}
-	return fmt.Sprintf("allowed prefixes: %s", strings.Join(cfg.ZFS.AllowedPrefixes, ", "))
 }
 
 func scheduleKind(item cron.Schedule) string {

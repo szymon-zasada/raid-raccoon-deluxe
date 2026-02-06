@@ -45,7 +45,7 @@ Useful flags:
 ```
 
 ## Configure (first run)
-Open the web UI after install. Use the printed admin password. Then update it in `System Settings`. Leave `zfs.allowed_prefixes` empty to allow all datasets. Review `allowed_cmds` before running jobs. Keep the config in `/usr/local/etc/raidraccoon.json` unless you need a custom path.
+Open the web UI after install. Use the printed admin password. Then update it in `System Settings`. Review `allowed_cmds` before running jobs. Keep the config in `/usr/local/etc/raidraccoon.json` unless you need a custom path.
 
 ## Quick start (FreeBSD)
 ```sh
@@ -93,7 +93,6 @@ sysrc raidraccoon_flags="--unsafe"
 - Example config: `raidraccoon.json.example`.
 - Use `./raidraccoon passwd` to set the password hash and salt.
 - `allowed_cmds` is enforced for the Terminal page (absolute paths only).
-- `zfs.allowed_prefixes` is optional. Leave it empty to allow all datasets.
 - `binary_path` is used by the scheduler to call `raidraccoon snapshot`.
 - HTTP Basic Auth uses `auth.username`, `auth.salt_hex`, `auth.password_hash_hex`.
 

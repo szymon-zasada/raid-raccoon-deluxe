@@ -41,8 +41,7 @@ type SambaConfig struct {
 }
 
 type ZFSConfig struct {
-	AllowedPrefixes []string `json:"allowed_prefixes"`
-	SnapshotPrefix  string   `json:"snapshot_prefix"`
+	SnapshotPrefix string `json:"snapshot_prefix"`
 }
 
 type CronConfig struct {
@@ -124,8 +123,7 @@ func DefaultConfig() Config {
 			TestparmArgs: []string{"-s", "/usr/local/etc/smb4.conf"},
 		},
 		ZFS: ZFSConfig{
-			AllowedPrefixes: []string{},
-			SnapshotPrefix:  "raidraccoon",
+			SnapshotPrefix: "raidraccoon",
 		},
 		Cron: CronConfig{
 			CronFile: "/etc/crontab",

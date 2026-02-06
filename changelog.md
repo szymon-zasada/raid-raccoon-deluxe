@@ -1,6 +1,8 @@
 # Changelog
 
 ## 2026-02-06
+- Removed ZFS dataset prefix restrictions from backend validation and settings UI.
+- Updated snapshots/schedules/replication dataset pickers to list all datasets without allowlist filtering.
 - Grouped Samba Users/Shares under a single “Samba Settings” top nav entry.
 - Grouped ZFS Snapshots/Schedules/Replication under a single “ZFS Snapshots” top nav entry.
 - Switched ZFS snapshots subnav links to button-based navigation.
@@ -9,6 +11,7 @@
 - Prefer ZFS pool import by numeric ID when available to avoid ambiguous pool name errors.
 - Filter out already-imported pools from the importable list and refresh cache after import.
 - Updated install.sh to download the latest GitHub release binary when a local build is unavailable.
+- Updated install.sh to auto-install `rsync` via pkg when missing.
 - ZFS allowlist now defaults to allow all datasets when `zfs.allowed_prefixes` is empty.
 - Added installer prerequisite checks for core ZFS tools and optional Samba/rsync utilities.
 
