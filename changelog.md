@@ -10,6 +10,7 @@
 - Filter out already-imported pools from the importable list and refresh cache after import.
 - Updated install.sh to download the latest GitHub release binary when a local build is unavailable.
 - ZFS allowlist now defaults to allow all datasets when `zfs.allowed_prefixes` is empty.
+- Added installer prerequisite checks for core ZFS tools and optional Samba/rsync utilities.
 
 ## 2026-02-03
 - Added `install.sh` to set up the FreeBSD service user, rc.d script, sudoers entry, config, and autostart/start flow.

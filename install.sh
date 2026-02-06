@@ -37,6 +37,26 @@ if [ "$(/usr/bin/uname -s)" != "FreeBSD" ]; then
   exit 1
 fi
 
+# Prerequisite checks
+require_cmd() {
+  cmd_path="$1"
+  label="$2"
+  if [ ! -x "$cmd_path" ]; then
+    echo "error: missing ${label} (${cmd_path})." >&2
+    exit 1
+  fi
+}
+
+warn_cmd() {
+  cmd_path="$1"
+  label="$2"
+  if [ ! -x "$cmd_path" ]; then
+    echo "warning: missing ${label} (${cmd_path})." >&2
+    return 1
+  fi
+  return 0
+}
+
 # Defaults (override via CLI flags)
 PREFIX="/usr/local"        # install prefix for bin/etc/rc.d
 SRC_BIN=""                 # source binary path (auto-detect/build if empty)
@@ -92,6 +112,20 @@ while [ $# -gt 0 ]; do
       ;;
   esac
 done
+
+# Core tools
+require_cmd /sbin/zfs "zfs"
+require_cmd /sbin/zpool "zpool"
+warn_cmd /sbin/geom "geom"
+warn_cmd /sbin/sysctl "sysctl"
+warn_cmd /usr/sbin/service "service"
+warn_cmd /usr/sbin/sysrc "sysrc"
+
+# Optional feature tools
+warn_cmd /usr/local/bin/smbpasswd "smbpasswd (Samba users)"
+warn_cmd /usr/local/bin/pdbedit "pdbedit (Samba users)"
+warn_cmd /usr/local/bin/testparm "testparm (Samba shares)"
+warn_cmd /usr/local/bin/rsync "rsync (Rsync jobs)"
 
 # Derived paths
 BINDIR="$PREFIX/bin"
