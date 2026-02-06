@@ -8,6 +8,8 @@
 - Added server-side detection of importable ZFS pools to back the UI popup.
 - Prefer ZFS pool import by numeric ID when available to avoid ambiguous pool name errors.
 - Filter out already-imported pools from the importable list and refresh cache after import.
+- Updated install.sh to download the latest GitHub release binary when a local build is unavailable.
+- ZFS allowlist now defaults to allow all datasets when `zfs.allowed_prefixes` is empty.
 
 ## 2026-02-03
 - Added `install.sh` to set up the FreeBSD service user, rc.d script, sudoers entry, config, and autostart/start flow.

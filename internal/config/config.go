@@ -124,7 +124,7 @@ func DefaultConfig() Config {
 			TestparmArgs: []string{"-s", "/usr/local/etc/smb4.conf"},
 		},
 		ZFS: ZFSConfig{
-			AllowedPrefixes: []string{"tank", "zroot"},
+			AllowedPrefixes: []string{},
 			SnapshotPrefix:  "raidraccoon",
 		},
 		Cron: CronConfig{
@@ -281,9 +281,6 @@ func applyDefaults(cfg *Config) {
 	}
 	if len(cfg.Samba.TestparmArgs) == 0 {
 		cfg.Samba.TestparmArgs = def.Samba.TestparmArgs
-	}
-	if len(cfg.ZFS.AllowedPrefixes) == 0 {
-		cfg.ZFS.AllowedPrefixes = def.ZFS.AllowedPrefixes
 	}
 	if cfg.ZFS.SnapshotPrefix == "" {
 		cfg.ZFS.SnapshotPrefix = def.ZFS.SnapshotPrefix

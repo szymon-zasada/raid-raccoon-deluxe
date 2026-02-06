@@ -11,6 +11,8 @@ Usage: install.sh [options]
 
 Options:
   --bin PATH         Path to raidraccoon binary (default: ./raidraccoon or build if go is available).
+  --version TAG      GitHub release tag to install (default: latest).
+  --asset NAME       Override GitHub release asset name (default: raidraccoon-<os>-<arch>).
   --config PATH      Config path (default: /usr/local/etc/raidraccoon.json).
   --user NAME        Service user (default: raidraccoon).
   --group NAME       Service group (default: raidraccoon).
@@ -47,11 +49,20 @@ INSTALL_RC=1               # install rc.d script
 INSTALL_SUDOERS=1          # install sudoers entry
 SET_PASSWORD=1             # set admin password for new config
 PASSWORD_VALUE=""          # explicit password (otherwise generate)
+REPO_OWNER="szymon-zasada"
+REPO_NAME="raid-raccoon-deluxe"
+RELEASE_TAG="latest"
+ASSET_NAME=""
+CLEANUP_BIN=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --bin)
       SRC_BIN="$2"; shift 2 ;;
+    --version)
+      RELEASE_TAG="$2"; shift 2 ;;
+    --asset)
+      ASSET_NAME="$2"; shift 2 ;;
     --config)
       CONFIG_PATH="$2"; shift 2 ;;
     --user)
@@ -95,6 +106,71 @@ BIN_PATH="$BINDIR/raidraccoon"
 SCRIPT_DIR=$(/usr/bin/dirname "$0")
 SCRIPT_DIR=$(cd "$SCRIPT_DIR" && /bin/pwd)
 
+download_to() {
+  url="$1"
+  dest="$2"
+  if command -v /usr/bin/fetch >/dev/null 2>&1; then
+    /usr/bin/fetch -q -o "$dest" "$url"
+    return $?
+  fi
+  if command -v /usr/bin/curl >/dev/null 2>&1; then
+    /usr/bin/curl -fsSL -o "$dest" "$url"
+    return $?
+  fi
+  if command -v /usr/bin/wget >/dev/null 2>&1; then
+    /usr/bin/wget -q -O "$dest" "$url"
+    return $?
+  fi
+  echo "error: need fetch, curl, or wget to download releases." >&2
+  return 1
+}
+
+detect_arch() {
+  arch=$(/usr/bin/uname -m)
+  case "$arch" in
+    amd64|x86_64) echo "amd64" ;;
+    arm64|aarch64) echo "arm64" ;;
+    *) echo "" ;;
+  esac
+}
+
+download_release() {
+  os="freebsd"
+  arch=$(detect_arch)
+  if [ -z "$arch" ]; then
+    echo "error: unsupported architecture. Use --bin PATH." >&2
+    exit 1
+  fi
+  if [ -z "$ASSET_NAME" ]; then
+    ASSET_NAME="raidraccoon-${os}-${arch}"
+  fi
+  api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/latest"
+  if [ "$RELEASE_TAG" != "latest" ]; then
+    api_url="https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/releases/tags/${RELEASE_TAG}"
+  fi
+  json_tmp=$(/usr/bin/mktemp -t raidraccoon.release)
+  if ! download_to "$api_url" "$json_tmp"; then
+    /bin/rm -f "$json_tmp"
+    echo "error: failed to fetch release metadata." >&2
+    exit 1
+  fi
+  asset_url=$(/usr/bin/grep -E "\"browser_download_url\": \"[^\"]*${ASSET_NAME}\"" "$json_tmp" | /usr/bin/head -n 1 | /usr/bin/sed -e 's/.*"browser_download_url": "\([^"]*\)".*/\1/')
+  /bin/rm -f "$json_tmp"
+  if [ -z "$asset_url" ]; then
+    echo "error: release asset not found (${ASSET_NAME})." >&2
+    echo "hint: use --asset NAME or --bin PATH." >&2
+    exit 1
+  fi
+  dl_bin=$(/usr/bin/mktemp -t raidraccoon.bin)
+  if ! download_to "$asset_url" "$dl_bin"; then
+    /bin/rm -f "$dl_bin"
+    echo "error: failed to download release binary." >&2
+    exit 1
+  fi
+  SRC_BIN="$dl_bin"
+  CLEANUP_BIN=1
+}
+
 if [ -z "$SRC_BIN" ]; then
   if [ -x "$SCRIPT_DIR/raidraccoon" ]; then
     SRC_BIN="$SCRIPT_DIR/raidraccoon"
@@ -106,9 +182,9 @@ if [ -z "$SRC_BIN" ]; then
     echo "Building raidraccoon with ${GO_BIN}..."
     (cd "$SCRIPT_DIR" && CGO_ENABLED=0 "$GO_BIN" build -o "$BUILD_BIN" ./cmd/raidraccoon)
     SRC_BIN="$BUILD_BIN"
+    CLEANUP_BIN=1
   else
-    echo "error: raidraccoon binary not found. Use --bin PATH or run from the repo root." >&2
-    exit 1
+    download_release
   fi
 fi
 
@@ -132,7 +208,9 @@ fi
 # Install binary
 /usr/bin/install -m 0555 "$SRC_BIN" "$BIN_PATH"
 
-if [ "${SRC_BIN}" != "$SCRIPT_DIR/raidraccoon" ] && [ "${SRC_BIN}" != "./raidraccoon" ] && [ -f "$SRC_BIN" ]; then
+if [ "${CLEANUP_BIN}" -eq 1 ] && [ -f "$SRC_BIN" ]; then
+  /bin/rm -f "$SRC_BIN"
+elif [ "${SRC_BIN}" != "$SCRIPT_DIR/raidraccoon" ] && [ "${SRC_BIN}" != "./raidraccoon" ] && [ -f "$SRC_BIN" ]; then
   case "$SRC_BIN" in
     /tmp/raidraccoon.*|/var/tmp/raidraccoon.*)
       # Clean up temporary build output

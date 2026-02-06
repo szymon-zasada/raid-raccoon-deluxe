@@ -361,7 +361,16 @@ func EnforceRetention(ctx context.Context, cfg config.Config, dataset, prefix st
 
 // ValidateDataset enforces the allowlist in cfg.ZFS.AllowedPrefixes.
 func ValidateDataset(cfg config.Config, dataset string) bool {
+	if dataset == "" {
+		return false
+	}
+	if len(cfg.ZFS.AllowedPrefixes) == 0 {
+		return true
+	}
 	for _, prefix := range cfg.ZFS.AllowedPrefixes {
+		if prefix == "*" {
+			return true
+		}
 		if dataset == prefix || strings.HasPrefix(dataset, prefix+"/") {
 			return true
 		}

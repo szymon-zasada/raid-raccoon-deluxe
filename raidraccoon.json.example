@@ -28,7 +28,7 @@
     "testparm_args": ["-s", "/usr/local/etc/smb4.conf"]
   },
   "zfs": {
-    "allowed_prefixes": ["tank", "zroot"],
+    "allowed_prefixes": [],
     "snapshot_prefix": "raidraccoon"
   },
   "cron": {

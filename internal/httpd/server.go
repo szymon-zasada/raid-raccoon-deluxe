@@ -2055,7 +2055,12 @@ func filterDatasetProps(props map[string]string) map[string]string {
 
 func allowedPrefixDetails(cfg config.Config) string {
 	if len(cfg.ZFS.AllowedPrefixes) == 0 {
-		return "no allowed prefixes configured (set zfs.allowed_prefixes)"
+		return "all datasets allowed (zfs.allowed_prefixes is empty)"
+	}
+	for _, prefix := range cfg.ZFS.AllowedPrefixes {
+		if prefix == "*" {
+			return "all datasets allowed (zfs.allowed_prefixes includes '*')"
+		}
 	}
 	return fmt.Sprintf("allowed prefixes: %s", strings.Join(cfg.ZFS.AllowedPrefixes, ", "))
 }
