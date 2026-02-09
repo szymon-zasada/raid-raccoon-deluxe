@@ -102,7 +102,7 @@ All system actions are executed via `sudo -n <abs_cmd> <args...>`.
 Create `/usr/local/etc/sudoers.d/raidraccoon`:
 ```sudoers
 Defaults:raidraccoon secure_path="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
-raidraccoon ALL=(ALL) NOPASSWD: /sbin/zfs, /sbin/zpool, /sbin/geom, /sbin/sysctl, /usr/sbin/service, /usr/local/bin/smbpasswd, /usr/local/bin/pdbedit, /usr/local/bin/testparm, /usr/local/bin/rsync, /usr/sbin/sysrc, /sbin/shutdown
+raidraccoon ALL=(ALL) NOPASSWD: /sbin/zfs, /sbin/zpool, /sbin/geom, /sbin/sysctl, /usr/sbin/service, /usr/local/bin/smbpasswd, /usr/local/bin/pdbedit, /usr/local/bin/testparm, /usr/local/bin/rsync, /usr/sbin/sysrc, /sbin/shutdown, /usr/bin/install
 ```
 
 Ensure the binary and config are readable by the `raidraccoon` user.

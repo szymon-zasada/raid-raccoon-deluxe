@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-02-09
+- Fixed cron schedule saves for non-root service users by falling back to privileged `/usr/bin/install` when direct writes to `/etc/crontab` are denied.
+- Updated installer-generated sudoers policy to include `/usr/bin/install` for cron file updates.
+- Updated README sudoers example to include `/usr/bin/install`.
+
 ## 2026-02-06
 - Installer now defaults to downloading GitHub release binaries (latest stable by default) instead of auto-using local `./raidraccoon`.
 - Installer release tag handling now accepts both `1.0.x` and `v1.0.x` format and uses stricter asset URL matching.

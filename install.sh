@@ -369,7 +369,7 @@ if [ "${INSTALL_SUDOERS}" -eq 1 ]; then
 # RaidRaccoon Deluxe sudoers (required for web UI actions)
 Defaults:${USER_NAME} secure_path="/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 # Allow only the system commands the UI needs
-${USER_NAME} ALL=(ALL) NOPASSWD: /sbin/zfs, /sbin/zpool, /sbin/geom, /sbin/sysctl, /usr/sbin/service, /usr/local/bin/smbpasswd, /usr/local/bin/pdbedit, /usr/local/bin/testparm, /usr/local/bin/rsync, /usr/sbin/sysrc, /sbin/shutdown
+${USER_NAME} ALL=(ALL) NOPASSWD: /sbin/zfs, /sbin/zpool, /sbin/geom, /sbin/sysctl, /usr/sbin/service, /usr/local/bin/smbpasswd, /usr/local/bin/pdbedit, /usr/local/bin/testparm, /usr/local/bin/rsync, /usr/sbin/sysrc, /sbin/shutdown, /usr/bin/install
 SUDO_EOF
   /usr/bin/install -m 0440 "$SUDOERS_TMP" /usr/local/etc/sudoers.d/raidraccoon
   /bin/rm -f "$SUDOERS_TMP"

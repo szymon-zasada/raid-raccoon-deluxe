@@ -4,10 +4,13 @@ package httpd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -1376,7 +1379,7 @@ func (s *Server) handleSchedules(w http.ResponseWriter, r *http.Request) {
 			Cron:      normalizeCron(req.Schedule),
 		}
 		file.Items = cron.Upsert(file.Items, item)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1413,7 +1416,7 @@ func (s *Server) handleScheduleItem(w http.ResponseWriter, r *http.Request) {
 		} else {
 			file.Items = updateSchedule(file.Items, id, req, s.cfg)
 		}
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1436,7 +1439,7 @@ func (s *Server) handleScheduleItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		file.Items = cron.Delete(file.Items, id)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1551,7 +1554,7 @@ func (s *Server) handleZFSReplication(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		file.Items = cron.Upsert(file.Items, item)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1589,7 +1592,7 @@ func (s *Server) handleZFSReplicationItem(w http.ResponseWriter, r *http.Request
 			}
 			file.Items = updatedItems
 		}
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1612,7 +1615,7 @@ func (s *Server) handleZFSReplicationItem(w http.ResponseWriter, r *http.Request
 			return
 		}
 		file.Items = cron.Delete(file.Items, id)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1717,7 +1720,7 @@ func (s *Server) handleRsyncJobs(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 		file.Items = cron.Upsert(file.Items, item)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1755,7 +1758,7 @@ func (s *Server) handleRsyncJobItem(w http.ResponseWriter, r *http.Request) {
 			}
 			file.Items = updatedItems
 		}
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1778,7 +1781,7 @@ func (s *Server) handleRsyncJobItem(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		file.Items = cron.Delete(file.Items, id)
-		updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+		updated, err := s.saveCronFile(file)
 		if err != nil {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "save cron failed", Details: err.Error()})
 			return
@@ -1854,6 +1857,36 @@ func (s *Server) binaryPath() string {
 
 func (s *Server) runCommand(ctx context.Context, absCmd string, args []string, stdin []byte) (execwrap.Result, error) {
 	return execwrap.Run(ctx, absCmd, args, stdin, s.cfg.Limits)
+}
+
+func (s *Server) saveCronFile(file cron.File) (string, error) {
+	updated, err := cron.Save(s.cfg.Cron.CronFile, file, s.binaryPath(), s.cfg.Cron.CronUser)
+	if err == nil {
+		return updated, nil
+	}
+	if !errors.Is(err, os.ErrPermission) {
+		return "", err
+	}
+
+	tmpDir := os.TempDir()
+	tmpPath := filepath.Join(tmpDir, fmt.Sprintf("raidraccoon-cron-%d.tmp", time.Now().UnixNano()))
+	defer os.Remove(tmpPath)
+	if _, tmpErr := cron.Save(tmpPath, file, s.binaryPath(), s.cfg.Cron.CronUser); tmpErr != nil {
+		return "", tmpErr
+	}
+
+	res, runErr := s.runCommand(context.Background(), "/usr/bin/install", []string{"-m", "0644", tmpPath, s.cfg.Cron.CronFile}, nil)
+	if runErr != nil {
+		return "", runErr
+	}
+	if res.ExitCode != 0 {
+		details := strings.TrimSpace(res.Stderr)
+		if details == "" {
+			details = "sudo install failed; ensure /usr/bin/install is allowed for the service user"
+		}
+		return "", fmt.Errorf("%s", details)
+	}
+	return time.Now().UTC().Format(time.RFC3339), nil
 }
 
 func normalizeCron(spec cron.CronSpec) cron.CronSpec {
