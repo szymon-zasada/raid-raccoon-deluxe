@@ -316,6 +316,11 @@ func DestroySnapshot(ctx context.Context, cfg config.Config, snapshot string) (e
 	return execwrap.Run(ctx, cfg.Paths.ZFS, []string{"destroy", snapshot}, nil, cfg.Limits)
 }
 
+// DestroySnapshotForce performs a recursive deferred destroy to handle busy snapshots.
+func DestroySnapshotForce(ctx context.Context, cfg config.Config, snapshot string) (execwrap.Result, error) {
+	return execwrap.Run(ctx, cfg.Paths.ZFS, []string{"destroy", "-rd", snapshot}, nil, cfg.Limits)
+}
+
 func MountDataset(ctx context.Context, cfg config.Config, dataset string) (execwrap.Result, error) {
 	return execwrap.Run(ctx, cfg.Paths.ZFS, []string{"mount", dataset}, nil, cfg.Limits)
 }

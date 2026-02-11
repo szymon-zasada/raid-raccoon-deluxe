@@ -1307,6 +1307,7 @@ func (s *Server) handleZFSSnapshots(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Name    string `json:"name"`
 			Confirm bool   `json:"confirm"`
+			Force   bool   `json:"force"`
 		}
 		if !s.decodeJSON(w, r, &req) {
 			return
@@ -1319,8 +1320,19 @@ func (s *Server) handleZFSSnapshots(w http.ResponseWriter, r *http.Request) {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "snapshot name required"})
 			return
 		}
-		res, err := zfs.DestroySnapshot(r.Context(), s.cfg, req.Name)
-		s.audit.Log(auth.UserFromContext(r.Context()), "zfs.destroy_snapshot", fmt.Sprintf("%s destroy %s", s.cfg.Paths.ZFS, req.Name), res.ExitCode)
+		var (
+			res     execwrap.Result
+			err     error
+			command string
+		)
+		if req.Force {
+			res, err = zfs.DestroySnapshotForce(r.Context(), s.cfg, req.Name)
+			command = fmt.Sprintf("%s destroy -rd %s", s.cfg.Paths.ZFS, req.Name)
+		} else {
+			res, err = zfs.DestroySnapshot(r.Context(), s.cfg, req.Name)
+			command = fmt.Sprintf("%s destroy %s", s.cfg.Paths.ZFS, req.Name)
+		}
+		s.audit.Log(auth.UserFromContext(r.Context()), "zfs.destroy_snapshot", command, res.ExitCode)
 		if err != nil || res.ExitCode != 0 {
 			s.writeJSON(w, http.StatusBadRequest, apiEnvelope{Ok: false, Error: "snapshot destroy failed", Details: res.Stderr})
 			return

@@ -1977,7 +1977,10 @@
       renderTable('#zfs-snapshots-table', snaps, '#zfs-snapshots-empty', (snap) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${snap.name}</td><td>${snap.created}</td>
-          <td><button class="btn" data-action="snapshot-destroy" data-name="${snap.name}">Destroy</button></td>`;
+          <td>
+            <button class="btn" data-action="snapshot-destroy" data-name="${snap.name}">Destroy</button>
+            <button class="btn" data-action="snapshot-force-destroy" data-name="${snap.name}">Force Destroy</button>
+          </td>`;
         return tr;
       });
     };
@@ -2007,6 +2010,14 @@
         if (!ok) return;
         await withBusy(btn, () => api('DELETE', '/api/zfs/snapshots', { name, confirm: true }));
         showToast('Snapshot destroyed');
+        loadSnapshots();
+      }
+      if (btn.dataset.action === 'snapshot-force-destroy') {
+        const name = btn.dataset.name;
+        const ok = await confirmModal('Force destroy snapshot', `Force destroy ${name} recursively (deferred if busy)?`);
+        if (!ok) return;
+        await withBusy(btn, () => api('DELETE', '/api/zfs/snapshots', { name, confirm: true, force: true }));
+        showToast('Snapshot force-destroy requested');
         loadSnapshots();
       }
     });
