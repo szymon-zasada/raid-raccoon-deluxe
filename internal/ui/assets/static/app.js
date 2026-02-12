@@ -163,6 +163,131 @@
     if (el) el.textContent = msg;
   };
 
+  const parseIntInRange = (value, min, max) => {
+    const parsed = parseInt(String(value), 10);
+    if (Number.isNaN(parsed) || parsed < min || parsed > max) {
+      return null;
+    }
+    return parsed;
+  };
+
+  const pad2 = (value) => String(value).padStart(2, '0');
+
+  // Cron can't anchor every-N-hour intervals for all N values.
+  // For divisors of 24, encode an explicit anchored hour sequence; otherwise fall back to */N.
+  const buildIntervalHoursField = (startHourRaw, intervalRaw) => {
+    const startHour = parseIntInRange(startHourRaw, 0, 23);
+    if (startHour === null) {
+      return '*';
+    }
+    let interval = parseInt(intervalRaw, 10);
+    if (Number.isNaN(interval) || interval < 1) {
+      interval = 1;
+    }
+    if (interval >= 24) {
+      return `${startHour}`;
+    }
+    if (interval === 1) {
+      return '*';
+    }
+    if (24 % interval !== 0) {
+      return `*/${interval}`;
+    }
+    const runsPerDay = Math.floor(24 / interval);
+    const hours = [];
+    for (let i = 0; i < runsPerDay; i += 1) {
+      hours.push((startHour + (i * interval)) % 24);
+    }
+    return hours.join(',');
+  };
+
+  const parseHourInterval = (hourFieldRaw) => {
+    const hourField = (hourFieldRaw || '').trim();
+    if (!hourField) {
+      return null;
+    }
+    if (hourField === '*') {
+      return { interval: 1, start: 0, anchored: false };
+    }
+    if (hourField.startsWith('*/')) {
+      const interval = parseIntInRange(hourField.slice(2), 1, 23);
+      if (interval === null) {
+        return null;
+      }
+      return { interval, start: 0, anchored: false };
+    }
+    const parts = hourField.split(',').map((part) => part.trim()).filter((part) => part !== '');
+    if (parts.length < 2) {
+      return null;
+    }
+    const hours = [];
+    for (const part of parts) {
+      const hour = parseIntInRange(part, 0, 23);
+      if (hour === null) {
+        return null;
+      }
+      hours.push(hour);
+    }
+    const seen = new Set(hours);
+    if (seen.size !== hours.length) {
+      return null;
+    }
+    const step = (hours[1] - hours[0] + 24) % 24;
+    if (step === 0) {
+      return null;
+    }
+    for (let i = 1; i < hours.length; i += 1) {
+      if (((hours[i] - hours[i - 1] + 24) % 24) !== step) {
+        return null;
+      }
+    }
+    if (((hours[0] - hours[hours.length - 1] + 24) % 24) !== step) {
+      return null;
+    }
+    return { interval: step, start: hours[0], anchored: true };
+  };
+
+  const summarizeCron = (spec, raw) => {
+    if (!spec) return raw || '';
+    const minute = (spec.minute || '*').trim();
+    const hour = (spec.hour || '*').trim();
+    const dom = (spec.dom || '*').trim();
+    const month = (spec.month || '*').trim();
+    const dow = (spec.dow || '*').trim();
+    const minuteValue = parseIntInRange(minute, 0, 59);
+    const hourValue = parseIntInRange(hour, 0, 23);
+
+    if (minute.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
+      return `Every ${minute.slice(2)} minutes`;
+    }
+
+    if (dom === '*' && month === '*' && dow === '*') {
+      if (hour === '*' && minuteValue !== null) {
+        return `Hourly at :${pad2(minuteValue)}`;
+      }
+      const hourInterval = parseHourInterval(hour);
+      if (hourInterval && minuteValue !== null) {
+        if (hourInterval.interval === 1) {
+          return `Hourly at :${pad2(minuteValue)}`;
+        }
+        if (hourInterval.anchored) {
+          return `Every ${hourInterval.interval} hours from ${pad2(hourInterval.start)}:${pad2(minuteValue)}`;
+        }
+        return `Every ${hourInterval.interval} hours from 00:${pad2(minuteValue)}`;
+      }
+      if (hourValue !== null && minuteValue !== null) {
+        return `Daily at ${pad2(hourValue)}:${pad2(minuteValue)}`;
+      }
+    }
+    if (dow !== '*' && dom === '*' && month === '*' && hourValue !== null && minuteValue !== null) {
+      return `Weekly (dow ${dow}) at ${pad2(hourValue)}:${pad2(minuteValue)}`;
+    }
+    if (dom !== '*' && month === '*' && hourValue !== null && minuteValue !== null) {
+      return `Monthly (day ${dom}) at ${pad2(hourValue)}:${pad2(minuteValue)}`;
+    }
+    return raw || `${minute} ${hour} ${dom} ${month} ${dow}`;
+  };
+
   const buildDatasetTree = (datasets, filterText) => {
     const root = { name: '', full: '', children: new Map(), data: null };
     const query = (filterText || '').trim().toLowerCase();
@@ -2369,31 +2494,6 @@
       updatePreview();
     };
 
-    const summarizeCron = (spec, raw) => {
-      if (!spec) return raw || '';
-      const minute = spec.minute || '*';
-      const hour = spec.hour || '*';
-      const dom = spec.dom || '*';
-      const month = spec.month || '*';
-      const dow = spec.dow || '*';
-      if (minute === '0' && hour.startsWith('*/') && dom === '*' && month === '*' && dow === '*') {
-        return `Every ${hour.slice(2)} hours`;
-      }
-      if (minute.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
-        return `Every ${minute.slice(2)} minutes`;
-      }
-      if (dom === '*' && month === '*' && dow === '*') {
-        return `Daily at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      if (dow !== '*' && dom === '*' && month === '*') {
-        return `Weekly (dow ${dow}) at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      if (dom !== '*' && month === '*') {
-        return `Monthly (day ${dom}) at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      return raw || `${minute} ${hour} ${dom} ${month} ${dow}`;
-    };
-
     const loadSchedules = async () => {
       const data = await api('GET', '/api/zfs/schedules');
       cronUpdated.textContent = data.updated ? `cron updated ${data.updated}` : '';
@@ -2430,7 +2530,7 @@
         schedule.dom = day || '1';
       }
       if (frequency === 'interval-hours') {
-        schedule = { minute: minute || '0', hour: `*/${interval}`, dom: '*', month: '*', dow: '*' };
+        schedule = { minute: minute || '0', hour: buildIntervalHoursField(hour, interval), dom: '*', month: '*', dow: '*' };
       }
       if (frequency === 'interval-minutes') {
         schedule = { minute: `*/${interval}`, hour: '*', dom: '*', month: '*', dow: '*' };
@@ -2593,31 +2693,6 @@
     const rsyncTable = document.getElementById('rsync-table');
     if (!replTable && !rsyncTable) return;
 
-    const summarizeCron = (spec, raw) => {
-      if (!spec) return raw || '';
-      const minute = spec.minute || '*';
-      const hour = spec.hour || '*';
-      const dom = spec.dom || '*';
-      const month = spec.month || '*';
-      const dow = spec.dow || '*';
-      if (minute === '0' && hour.startsWith('*/') && dom === '*' && month === '*' && dow === '*') {
-        return `Every ${hour.slice(2)} hours`;
-      }
-      if (minute.startsWith('*/') && hour === '*' && dom === '*' && month === '*' && dow === '*') {
-        return `Every ${minute.slice(2)} minutes`;
-      }
-      if (dom === '*' && month === '*' && dow === '*') {
-        return `Daily at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      if (dow !== '*' && dom === '*' && month === '*') {
-        return `Weekly (dow ${dow}) at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      if (dom !== '*' && month === '*') {
-        return `Monthly (day ${dom}) at ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
-      }
-      return raw || `${minute} ${hour} ${dom} ${month} ${dow}`;
-    };
-
     const replForm = document.getElementById('repl-form');
     const replUpdated = document.getElementById('repl-updated');
     const replId = document.getElementById('repl-id');
@@ -2715,7 +2790,7 @@
         schedule.dom = day || '1';
       }
       if (frequency === 'interval-hours') {
-        schedule = { minute: minute || '0', hour: `*/${interval}`, dom: '*', month: '*', dow: '*' };
+        schedule = { minute: minute || '0', hour: buildIntervalHoursField(hour, interval), dom: '*', month: '*', dow: '*' };
       }
       if (frequency === 'interval-minutes') {
         schedule = { minute: `*/${interval}`, hour: '*', dom: '*', month: '*', dow: '*' };
@@ -3030,7 +3105,7 @@
         schedule.dom = day || '1';
       }
       if (frequency === 'interval-hours') {
-        schedule = { minute: minute || '0', hour: `*/${interval}`, dom: '*', month: '*', dow: '*' };
+        schedule = { minute: minute || '0', hour: buildIntervalHoursField(hour, interval), dom: '*', month: '*', dow: '*' };
       }
       if (frequency === 'interval-minutes') {
         schedule = { minute: `*/${interval}`, hour: '*', dom: '*', month: '*', dow: '*' };

@@ -40,7 +40,7 @@ Useful flags:
 ./install.sh --no-start --no-enable
 ./install.sh --config /path/to/raidraccoon.json
 ./install.sh --password 'your-password'
-./install.sh --version v1.0.3
+./install.sh --version v1.0.6
 ./install.sh --asset raidraccoon-freebsd-amd64
 ```
 

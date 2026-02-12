@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-02-12
+- Fixed cron summary rendering for interval-hour schedules so values like `38 */2 * * *` no longer show as malformed daily times.
+- Updated quick schedule builders (snapshots, replication, rsync) to preserve selected start hour for interval-hour schedules when cron supports anchored hour lists.
+
 ## 2026-02-09
 - Fixed cron schedule saves for non-root service users by falling back to privileged `/usr/bin/install` when direct writes to `/etc/crontab` are denied.
 - Updated installer-generated sudoers policy to include `/usr/bin/install` for cron file updates.
